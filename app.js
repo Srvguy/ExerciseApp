@@ -1,0 +1,152 @@
+// Main App Router and Initialization
+
+const router = {
+    currentView: null,
+    history: [],
+    
+    navigate(view, params = {}) {
+        this.history.push({ view: this.currentView, params: this.currentParams });
+        this.currentView = view;
+        this.currentParams = params;
+        this.render();
+    },
+    
+    back() {
+        if (this.history.length > 0) {
+            const previous = this.history.pop();
+            this.currentView = previous.view || 'home';
+            this.currentParams = previous.params || {};
+            this.render();
+        } else {
+            this.navigate('home');
+        }
+    },
+    
+    async render() {
+        const view = this.currentView;
+        const params = this.currentParams || {};
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
+        
+        // Render appropriate view
+        switch(view) {
+            case 'home':
+                await Views.renderHome();
+                break;
+            case 'custom-workout':
+                await Views.renderCustomWorkout();
+                break;
+            case 'workout':
+                await Views.renderWorkout(params);
+                break;
+            case 'manage-exercises':
+                await Views.renderManageExercises();
+                break;
+            case 'add-edit-exercise':
+                await Views.renderAddEditExercise(params);
+                break;
+            case 'setup':
+                await Views.renderSetup();
+                break;
+            case 'add-edit-category':
+                await Views.renderAddEditCategory(params);
+                break;
+            case 'history':
+                await Views.renderHistory();
+                break;
+            case 'exercise-progress':
+                await Views.renderExerciseProgress(params);
+                break;
+            case 'import-export':
+                await Views.renderImportExport();
+                break;
+            default:
+                await Views.renderHome();
+        }
+    }
+};
+
+// App Initialization
+async function initApp() {
+    try {
+        // Show loading
+        document.getElementById('app').innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; flex-direction: column;">
+                <div class="spinner"></div>
+                <div style="margin-top: 24px; font-size: 18px; color: var(--color-text-secondary);">Loading FitTrack...</div>
+            </div>
+        `;
+        
+        // Initialize database
+        await db.init();
+        
+        // Initialize sample data if needed
+        await db.initializeSampleData();
+        
+        // Start at home view
+        router.navigate('home');
+        
+        console.log('FitTrack initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        document.getElementById('app').innerHTML = `
+            <div style="padding: 32px; text-align: center; color: var(--color-accent-danger);">
+                <h2>Failed to load app</h2>
+                <p>${error.message}</p>
+                <button class="btn btn-primary" onclick="location.reload()">Reload</button>
+            </div>
+        `;
+    }
+}
+
+// Handle browser back button
+window.addEventListener('popstate', () => {
+    router.back();
+});
+
+// Initialize app when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
+
+// Prevent pull-to-refresh on mobile
+let touchStartY = 0;
+document.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+    const touchY = e.touches[0].clientY;
+    const touchDelta = touchY - touchStartY;
+    if (touchDelta > 0 && window.scrollY === 0) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// Handle online/offline status
+window.addEventListener('online', () => {
+    showToast('Back online', 'success');
+});
+
+window.addEventListener('offline', () => {
+    showToast('Working offline', 'warning');
+});
+
+// Install prompt for PWA
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Could show an install button here
+    console.log('PWA install prompt available');
+});
+
+// Log successful PWA install
+window.addEventListener('appinstalled', () => {
+    console.log('PWA installed successfully');
+    deferredPrompt = null;
+});

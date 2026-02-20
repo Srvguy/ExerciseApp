@@ -1,0 +1,25 @@
+ICON FILES NOTE
+===============
+
+The icon-192.svg and icon-512.svg files are SVG placeholders.
+
+For production use, you should:
+
+1. Convert the SVG files to PNG:
+   - Use an online converter or tools like Inkscape, GIMP, or ImageMagick
+   - Command example: convert icon-192.svg icon-192.png
+   - Command example: convert icon-512.svg icon-512.png
+
+2. Or create your own custom PNG icons:
+   - 192x192 pixels for icon-192.png
+   - 512x512 pixels for icon-512.png
+   - Use the app's color scheme (neon green/cyan on dark background)
+   - Design should represent fitness/exercise tracking
+
+3. The SVG files show a simple design:
+   - Dark background (#1a1a2e)
+   - Gradient person icon (head + body) representing exercise
+   - Style matches the app's athletic aesthetic
+
+The manifest.json file references icon-192.png and icon-512.png, so make sure
+to have PNG versions with those exact filenames for the PWA to work properly.
