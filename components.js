@@ -141,25 +141,25 @@ function createTimer(initialSeconds, restSeconds = 0, onComplete) {
     controls.className = 'timer-controls';
     
     const minusBtn = createButton('-5s', 'btn-small btn-danger', () => {
-        if (!isRunning) {
-            if (isResting && restSeconds > 0) {
-                restTimeLeft = Math.max(5, restTimeLeft - 5);
-                originalRestTime = restTimeLeft;
-                display.textContent = formatTimer(restTimeLeft);
-            } else {
-                timeLeft = Math.max(5, timeLeft - 5);
-                originalExerciseTime = timeLeft;
-                display.textContent = formatTimer(timeLeft);
-            }
+        if (isResting && restSeconds > 0) {
+            restTimeLeft = Math.max(5, restTimeLeft - 5);
+            originalRestTime = restTimeLeft;
+            display.textContent = formatTimer(restTimeLeft);
+        } else {
+            timeLeft = Math.max(5, timeLeft - 5);
+            originalExerciseTime = timeLeft;
+            display.textContent = formatTimer(timeLeft);
         }
     });
     
     const startStopBtn = createButton('START', 'btn-primary', () => {
         if (isRunning) {
             clearInterval(intervalId);
+            isRunning = false;
             startStopBtn.textContent = 'RESUME';
             startStopBtn.className = 'btn btn-primary';
         } else {
+            isRunning = true;
             intervalId = setInterval(() => {
                 if (isResting) {
                     restTimeLeft--;
@@ -223,7 +223,6 @@ function createTimer(initialSeconds, restSeconds = 0, onComplete) {
             startStopBtn.textContent = 'STOP';
             startStopBtn.className = 'btn btn-danger';
         }
-        isRunning = !isRunning;
     });
     
     const resetBtn = createButton('RESET', 'btn-small btn-warning', () => {
@@ -243,16 +242,14 @@ function createTimer(initialSeconds, restSeconds = 0, onComplete) {
     });
     
     const plusBtn = createButton('+5s', 'btn-small btn-primary', () => {
-        if (!isRunning) {
-            if (isResting && restSeconds > 0) {
-                restTimeLeft += 5;
-                originalRestTime = restTimeLeft;
-                display.textContent = formatTimer(restTimeLeft);
-            } else {
-                timeLeft += 5;
-                originalExerciseTime = timeLeft;
-                display.textContent = formatTimer(timeLeft);
-            }
+        if (isResting && restSeconds > 0) {
+            restTimeLeft += 5;
+            originalRestTime = restTimeLeft;
+            display.textContent = formatTimer(restTimeLeft);
+        } else {
+            timeLeft += 5;
+            originalExerciseTime = timeLeft;
+            display.textContent = formatTimer(timeLeft);
         }
     });
     

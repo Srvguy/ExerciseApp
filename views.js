@@ -256,6 +256,9 @@ const Views = {
         const workoutNotes = new Map();
         const timers = new Map();
         
+        // Store timers globally so they can be stopped when navigating away
+        window.activeTimers = timers;
+        
         // Progress indicator
         const progressEl = document.createElement('div');
         progressEl.className = 'text-center mb-lg';
@@ -302,15 +305,20 @@ const Views = {
                 const checkbox = createCheckbox(isCompleted, (checked) => {
                     if (checked) {
                         completedSet.add(exercise.id);
+                        // Stop timer if this exercise has one
+                        const timer = timers.get(exercise.id);
+                        if (timer) {
+                            timer.stop();
+                        }
                     } else {
                         completedSet.delete(exercise.id);
                     }
                     updateProgress();
                     renderExercises();
                 });
-                checkbox.style.width = '50px';
-                checkbox.style.height = '50px';
-                checkbox.style.transform = 'scale(1.3)';
+                checkbox.style.width = '36px';  // Reduced from 50px
+                checkbox.style.height = '36px'; // Reduced from 50px
+                checkbox.style.transform = 'scale(1.0)'; // Reduced from 1.3
                 
                 const nameEl = document.createElement('div');
                 nameEl.style.fontSize = '20px';
@@ -324,11 +332,20 @@ const Views = {
                 // Progression suggestion and progress
                 const history = await db.getExerciseHistory(exercise.id);
                 const progressionThreshold = exercise.progressionThreshold || 3;
+                const progressionIncrement = exercise.progressionIncrement || 5;
+                const isTimedExercise = exercise.timerSeconds > 0;
                 const consecutiveCount = countConsecutiveCompletions(history, exercise.weight);
-                const suggestion = calculateProgression(history, exercise.weight, progressionThreshold);
+                const suggestion = calculateProgression(
+                    history, 
+                    exercise.weight, 
+                    progressionThreshold,
+                    isTimedExercise,
+                    exercise.timerSeconds,
+                    progressionIncrement
+                );
                 
                 // Show progression progress
-                if (exercise.weight && !exercise.timerSeconds) {
+                if ((exercise.weight && !isTimedExercise) || isTimedExercise) {
                     const progressInfo = document.createElement('div');
                     progressInfo.style.fontSize = '14px';
                     progressInfo.style.fontWeight = '600';
@@ -340,7 +357,8 @@ const Views = {
                         progressInfo.textContent = `🔥 ${consecutiveCount}/${progressionThreshold} completions - Ready to progress!`;
                     } else {
                         progressInfo.style.color = 'var(--color-text-secondary)';
-                        progressInfo.textContent = `Progress: ${consecutiveCount}/${progressionThreshold} completions at current weight`;
+                        const progressType = isTimedExercise ? 'time' : 'weight';
+                        progressInfo.textContent = `Progress: ${consecutiveCount}/${progressionThreshold} completions at current ${progressType}`;
                     }
                     itemContainer.appendChild(progressInfo);
                 }
@@ -351,8 +369,10 @@ const Views = {
                     alert.textContent = `💡 Ready to progress! Try ${suggestion}`;
                     itemContainer.appendChild(alert);
                     
-                    // Auto-adjust weight
-                    if (!adjustedWeights.has(exercise.id)) {
+                    // Auto-adjust weight or timer
+                    if (isTimedExercise) {
+                        // Don't auto-adjust timer, just show suggestion
+                    } else if (!adjustedWeights.has(exercise.id)) {
                         adjustedWeights.set(exercise.id, suggestion);
                     }
                 }
@@ -548,8 +568,12 @@ const Views = {
             for (const exercise of exercises) {
                 const completed = completedSet.has(exercise.id);
                 const finalWeight = adjustedWeights.get(exercise.id) || exercise.weight;
-                const finalTimer = adjustedTimers.get(exercise.id) || exercise.timerSeconds;
-                const finalRestTimer = adjustedRestTimers.get(exercise.id) || exercise.restTimerSeconds || 0;
+                
+                // Get adjusted timer values properly
+                const timer = timers.get(exercise.id);
+                const finalTimer = timer ? timer.getValue() : exercise.timerSeconds;
+                const finalRestTimer = timer ? timer.getRestValue() : (exercise.restTimerSeconds || 0);
+                
                 const notes = workoutNotes.get(exercise.id) || '';
                 
                 // Add workout record
@@ -901,9 +925,19 @@ const Views = {
         progressionDesc.style.color = 'var(--color-text-tertiary)';
         progressionDesc.style.marginTop = '-8px';
         progressionDesc.style.marginBottom = 'var(--spacing-md)';
-        progressionDesc.textContent = 'How many consecutive completions before suggesting weight increase';
+        progressionDesc.textContent = 'How many consecutive completions before suggesting progression';
         content.appendChild(progressionInput.group);
         content.appendChild(progressionDesc);
+        
+        const incrementInput = createFormInput('Progression Increment', 'number', 'e.g., 5', exercise?.progressionIncrement || '5');
+        const incrementDesc = document.createElement('div');
+        incrementDesc.style.fontSize = '12px';
+        incrementDesc.style.color = 'var(--color-text-tertiary)';
+        incrementDesc.style.marginTop = '-8px';
+        incrementDesc.style.marginBottom = 'var(--spacing-md)';
+        incrementDesc.textContent = 'Amount to increase (lbs, kg, or seconds for timed exercises)';
+        content.appendChild(incrementInput.group);
+        content.appendChild(incrementDesc);
         
         const notesInput = createFormInput('Notes', 'textarea', 'Notes about this exercise', exercise?.notes || '');
         content.appendChild(notesInput.group);
@@ -1023,6 +1057,7 @@ const Views = {
                 timerSeconds: parseInt(timerInput.input.value) || 0,
                 restTimerSeconds: parseInt(restTimerInput.input.value) || 0,
                 progressionThreshold: parseInt(progressionInput.input.value) || 3,
+                progressionIncrement: parseInt(incrementInput.input.value) || 5,
                 imagePath: selectedImage || ''
             };
             

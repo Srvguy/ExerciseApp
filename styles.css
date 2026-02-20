@@ -103,13 +103,13 @@ h4 { font-size: clamp(18px, 4vw, 24px); }
     border: 2px solid var(--color-accent-primary);
     color: var(--color-accent-primary);
     font-family: var(--font-display);
-    font-size: 16px;
-    padding: 12px 20px;
+    font-size: 13px;
+    padding: 8px 16px;
     border-radius: var(--border-radius-sm);
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .back-button:hover {

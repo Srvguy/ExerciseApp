@@ -163,7 +163,7 @@ function shuffleArray(array) {
 }
 
 // Calculate progression suggestion
-function calculateProgression(exerciseHistory, currentWeight, progressionThreshold = 3) {
+function calculateProgression(exerciseHistory, currentWeight, progressionThreshold = 3, isTimedExercise = false, timerSeconds = 0, progressionIncrement = 5) {
     if (!exerciseHistory || exerciseHistory.length < progressionThreshold) return null;
     
     // Get completed entries sorted by date desc
@@ -173,7 +173,29 @@ function calculateProgression(exerciseHistory, currentWeight, progressionThresho
     
     if (completed.length < progressionThreshold) return null;
     
-    // Check for consecutive completions at same weight
+    // For timed exercises, check timer progression
+    if (isTimedExercise && timerSeconds > 0) {
+        const recentTimer = completed[0].timerSeconds || timerSeconds;
+        let consecutiveCount = 0;
+        
+        for (const entry of completed) {
+            const entryTimer = entry.timerSeconds || 0;
+            if (entryTimer === recentTimer) {
+                consecutiveCount++;
+            } else {
+                break;
+            }
+        }
+        
+        // Suggest timer increase if threshold met
+        if (consecutiveCount >= progressionThreshold) {
+            const suggested = recentTimer + progressionIncrement;
+            return `${suggested} seconds`;
+        }
+        return null;
+    }
+    
+    // For weighted exercises, check weight progression
     const recentWeight = completed[0].weight;
     let consecutiveCount = 0;
     
@@ -189,7 +211,7 @@ function calculateProgression(exerciseHistory, currentWeight, progressionThresho
     if (consecutiveCount >= progressionThreshold) {
         const currentValue = parseWeight(recentWeight);
         if (currentValue > 0) {
-            const suggested = currentValue + 5;
+            const suggested = currentValue + progressionIncrement;
             if (recentWeight.toLowerCase().includes('kg')) {
                 return `${suggested} kg`;
             } else {
@@ -323,13 +345,13 @@ function importFromJSON() {
     });
 }
 
-// Select image file or take photo
+// Select image file from gallery (no camera)
 function selectImage() {
     return new Promise((resolve) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.capture = 'environment'; // This enables camera on mobile
+        // Do NOT set capture attribute - let user choose from gallery
         
         input.onchange = (e) => {
             const file = e.target.files[0];
@@ -342,7 +364,15 @@ function selectImage() {
             reader.onload = (event) => {
                 resolve(event.target.result); // Base64 data URL
             };
+            reader.onerror = () => {
+                console.error('Error reading file');
+                resolve(null);
+            };
             reader.readAsDataURL(file);
+        };
+        
+        input.oncancel = () => {
+            resolve(null);
         };
         
         input.click();
@@ -355,7 +385,7 @@ function takePhoto() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.capture = 'camera'; // Force camera
+        input.capture = 'environment'; // Force camera
         
         input.onchange = (e) => {
             const file = e.target.files[0];
@@ -368,7 +398,15 @@ function takePhoto() {
             reader.onload = (event) => {
                 resolve(event.target.result);
             };
+            reader.onerror = () => {
+                console.error('Error reading photo');
+                resolve(null);
+            };
             reader.readAsDataURL(file);
+        };
+        
+        input.oncancel = () => {
+            resolve(null);
         };
         
         input.click();
@@ -556,4 +594,47 @@ function hexToRgb(hex) {
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
     } : { r: 0, g: 0, b: 0 };
+}
+
+// Find changes from previous workout for an exercise
+async function findExerciseChanges(exerciseName, currentRecord, db) {
+    const allSessions = await db.getAllWorkoutSessions();
+    const sortedSessions = allSessions.sort((a, b) => b.date - a.date);
+    
+    // Find previous session with this exercise
+    for (const session of sortedSessions) {
+        if (session.date >= currentRecord.date) continue; // Skip current or future sessions
+        
+        const records = await db.getWorkoutExerciseRecords(session.id);
+        const prevRecord = records.find(r => r.exerciseName === exerciseName);
+        
+        if (prevRecord) {
+            const changes = [];
+            
+            // Check weight change
+            if (prevRecord.weight !== currentRecord.weight && currentRecord.weight) {
+                const prevWeight = parseWeight(prevRecord.weight);
+                const currWeight = parseWeight(currentRecord.weight);
+                if (prevWeight !== currWeight) {
+                    const diff = currWeight - prevWeight;
+                    const sign = diff > 0 ? '+' : '';
+                    changes.push(`Weight: ${prevRecord.weight} → ${currentRecord.weight} (${sign}${diff})`);
+                }
+            }
+            
+            // Check sets change
+            if (prevRecord.sets !== currentRecord.sets && currentRecord.sets) {
+                changes.push(`Sets: ${prevRecord.sets} → ${currentRecord.sets}`);
+            }
+            
+            // Check reps change
+            if (prevRecord.reps !== currentRecord.reps && currentRecord.reps) {
+                changes.push(`Reps: ${prevRecord.reps} → ${currentRecord.reps}`);
+            }
+            
+            return changes.length > 0 ? changes : null;
+        }
+    }
+    
+    return null;
 }
