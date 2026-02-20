@@ -617,23 +617,6 @@ async function exportHistoryToPDF(sessions, db) {
                     doc.text(details.join(' | '), margin + 80, y);
                 }
                 
-                // Try to add exercise photo (small thumbnail)
-                try {
-                    const exercise = await db.getExerciseByName(record.exerciseName);
-                    if (exercise && exercise.imagePath && exercise.imagePath.startsWith('data:image')) {
-                        doc.addImage(
-                            exercise.imagePath,
-                            'JPEG',
-                            pageWidth - margin - 25,
-                            y - 3,
-                            20,
-                            15
-                        );
-                    }
-                } catch (error) {
-                    // Silently fail if image can't be added
-                }
-                
                 y += 5;
                 
                 // Show changes from previous workout
@@ -643,13 +626,13 @@ async function exportHistoryToPDF(sessions, db) {
                         const changes = [];
                         
                         if (record.weight !== previousWorkout.weight && record.weight) {
-                            changes.push(`Weight: ${previousWorkout.weight} → ${record.weight}`);
+                            changes.push(`New Weight: ${record.weight} (was ${previousWorkout.weight})`);
                         }
                         if (record.sets !== previousWorkout.sets && record.sets) {
-                            changes.push(`Sets: ${previousWorkout.sets} → ${record.sets}`);
+                            changes.push(`New Sets: ${record.sets} (was ${previousWorkout.sets})`);
                         }
                         if (record.reps !== previousWorkout.reps && record.reps) {
-                            changes.push(`Reps: ${previousWorkout.reps} → ${record.reps}`);
+                            changes.push(`New Reps: ${record.reps} (was ${previousWorkout.reps})`);
                         }
                         
                         if (changes.length > 0) {
@@ -657,9 +640,11 @@ async function exportHistoryToPDF(sessions, db) {
                                 doc.addPage();
                                 y = margin;
                             }
-                            doc.setTextColor(255, 140, 0);
+                            doc.setTextColor(0, 100, 200);
                             doc.setFontSize(8);
-                            doc.text(`↑ ${changes.join(', ')}`, margin + 12, y);
+                            doc.setFont(undefined, 'italic');
+                            doc.text(changes.join(' | '), margin + 12, y);
+                            doc.setFont(undefined, 'normal');
                             y += 4;
                             doc.setFontSize(9);
                         }

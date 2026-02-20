@@ -11,7 +11,7 @@ function createHeader(title, showBack = false) {
     if (showBack) {
         const backBtn = document.createElement('button');
         backBtn.className = 'back-button';
-        backBtn.textContent = '← BACK';
+        backBtn.textContent = '←';
         backBtn.onclick = () => router.back();
         content.appendChild(backBtn);
     }

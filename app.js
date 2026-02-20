@@ -91,7 +91,7 @@ const router = {
 
 // App version - increment this when deploying updates
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 9;
+const APP_BUILD = 10;
 
 // Check for updates and clear old cache
 async function checkForUpdates() {

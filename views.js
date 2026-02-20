@@ -66,7 +66,7 @@ const Views = {
         versionFooter.style.fontSize = '11px';
         versionFooter.style.color = 'var(--color-text-tertiary)';
         versionFooter.style.fontWeight = '600';
-        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.4.0</span> • Build 9';
+        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.4.0</span> • Build 10';
         content.appendChild(versionFooter);
         
         container.appendChild(content);
@@ -360,6 +360,9 @@ const Views = {
                         const timer = timers.get(exercise.id);
                         if (timer) {
                             timer.stop();
+                            // Save current timer values before re-render
+                            adjustedTimers.set(exercise.id, timer.getValue());
+                            adjustedRestTimers.set(exercise.id, timer.getRestValue());
                         }
                     } else {
                         completedSet.delete(exercise.id);
