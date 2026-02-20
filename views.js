@@ -56,6 +56,19 @@ const Views = {
         utilityContainer.appendChild(setupBtn);
         
         content.appendChild(utilityContainer);
+        
+        // Version footer
+        const versionFooter = document.createElement('div');
+        versionFooter.style.textAlign = 'center';
+        versionFooter.style.marginTop = 'var(--spacing-xl)';
+        versionFooter.style.paddingTop = 'var(--spacing-lg)';
+        versionFooter.style.borderTop = '1px solid rgba(255, 255, 255, 0.05)';
+        versionFooter.style.fontSize = '11px';
+        versionFooter.style.color = 'var(--color-text-tertiary)';
+        versionFooter.style.fontWeight = '600';
+        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.3.1</span> • Build 6';
+        content.appendChild(versionFooter);
+        
         container.appendChild(content);
     },
 
@@ -1220,6 +1233,43 @@ const Views = {
         aboutTitle.textContent = 'ABOUT';
         aboutTitle.style.marginBottom = 'var(--spacing-md)';
         content.appendChild(aboutTitle);
+        
+        // Version number
+        const versionBox = document.createElement('div');
+        versionBox.style.padding = '16px';
+        versionBox.style.background = 'linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 204, 255, 0.1))';
+        versionBox.style.borderRadius = 'var(--border-radius)';
+        versionBox.style.border = '2px solid var(--color-accent-primary)';
+        versionBox.style.marginBottom = 'var(--spacing-md)';
+        versionBox.style.textAlign = 'center';
+        
+        const versionLabel = document.createElement('div');
+        versionLabel.style.fontSize = '12px';
+        versionLabel.style.fontWeight = '600';
+        versionLabel.style.color = 'var(--color-text-tertiary)';
+        versionLabel.style.textTransform = 'uppercase';
+        versionLabel.style.letterSpacing = '1px';
+        versionLabel.style.marginBottom = '4px';
+        versionLabel.textContent = 'App Version';
+        
+        const versionNumber = document.createElement('div');
+        versionNumber.style.fontSize = '32px';
+        versionNumber.style.fontFamily = 'var(--font-display)';
+        versionNumber.style.fontWeight = '900';
+        versionNumber.style.color = 'var(--color-accent-primary)';
+        versionNumber.style.textShadow = '0 0 20px rgba(0, 255, 136, 0.5)';
+        versionNumber.textContent = 'v1.3.1';
+        
+        const buildNumber = document.createElement('div');
+        buildNumber.style.fontSize = '11px';
+        buildNumber.style.color = 'var(--color-text-tertiary)';
+        buildNumber.style.marginTop = '4px';
+        buildNumber.textContent = 'Build 6 • February 2026';
+        
+        versionBox.appendChild(versionLabel);
+        versionBox.appendChild(versionNumber);
+        versionBox.appendChild(buildNumber);
+        content.appendChild(versionBox);
         
         const tipsText = document.createElement('div');
         tipsText.style.fontSize = '15px';
