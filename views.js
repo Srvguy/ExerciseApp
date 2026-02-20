@@ -66,7 +66,7 @@ const Views = {
         versionFooter.style.fontSize = '11px';
         versionFooter.style.color = 'var(--color-text-tertiary)';
         versionFooter.style.fontWeight = '600';
-        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.3.1</span> • Build 6';
+        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.4.0</span> • Build 9';
         content.appendChild(versionFooter);
         
         container.appendChild(content);
@@ -260,6 +260,44 @@ const Views = {
         
         const content = document.createElement('div');
         content.className = 'content-container';
+        
+        // Check if this should be a deload week
+        const isDeload = await shouldDeload();
+        
+        if (isDeload) {
+            exercises = applyDeload(exercises);
+            
+            // Show deload notification banner
+            const deloadAlert = document.createElement('div');
+            deloadAlert.style.padding = '16px';
+            deloadAlert.style.background = 'linear-gradient(135deg, rgba(255, 170, 0, 0.2), rgba(255, 140, 0, 0.2))';
+            deloadAlert.style.border = '2px solid var(--color-accent-warning)';
+            deloadAlert.style.borderRadius = 'var(--border-radius)';
+            deloadAlert.style.marginBottom = 'var(--spacing-lg)';
+            deloadAlert.style.textAlign = 'center';
+            
+            const deloadIcon = document.createElement('div');
+            deloadIcon.style.fontSize = '32px';
+            deloadIcon.style.marginBottom = '8px';
+            deloadIcon.textContent = '🔄';
+            
+            const deloadText = document.createElement('div');
+            deloadText.style.fontSize = '18px';
+            deloadText.style.fontWeight = '700';
+            deloadText.style.color = 'var(--color-accent-warning)';
+            deloadText.textContent = 'DELOAD WEEK';
+            
+            const deloadSubtext = document.createElement('div');
+            deloadSubtext.style.fontSize = '14px';
+            deloadSubtext.style.color = 'var(--color-text-secondary)';
+            deloadSubtext.style.marginTop = '4px';
+            deloadSubtext.textContent = 'All weights reduced by 50% for recovery';
+            
+            deloadAlert.appendChild(deloadIcon);
+            deloadAlert.appendChild(deloadText);
+            deloadAlert.appendChild(deloadSubtext);
+            content.appendChild(deloadAlert);
+        }
         
         const startTime = Date.now();
         const completedSet = new Set();
@@ -574,8 +612,14 @@ const Views = {
                 categoryName: categoryName,
                 duration: duration,
                 completedCount: completedSet.size,
-                totalCount: exercises.length
+                totalCount: exercises.length,
+                isDeloadWeek: isDeload
             });
+            
+            // If was deload week, update last deload date
+            if (isDeload) {
+                await db.setSetting('lastDeloadDate', Date.now());
+            }
             
             // Save exercise records and history
             for (const exercise of exercises) {
@@ -610,6 +654,7 @@ const Views = {
                     weight: finalWeight,
                     reps: exercise.reps,
                     sets: exercise.sets,
+                    timerSeconds: finalTimer,
                     notes: notes,
                     personalRecord: false,
                     completed: completed
@@ -1227,6 +1272,80 @@ const Views = {
         divider2.style.background = 'rgba(255, 255, 255, 0.1)';
         divider2.style.margin = 'var(--spacing-xl) 0';
         content.appendChild(divider2);
+        
+        // Deload Settings
+        const deloadTitle = document.createElement('h3');
+        deloadTitle.textContent = 'DELOAD SCHEDULE';
+        deloadTitle.style.marginBottom = 'var(--spacing-md)';
+        content.appendChild(deloadTitle);
+        
+        const deloadCard = createCard('');
+        const deloadContent = document.createElement('div');
+        
+        // Current setting
+        const currentDeload = await db.getSetting('deloadWeeks', 0);
+        const lastDeload = await db.getSetting('lastDeloadDate', 0);
+        
+        const deloadLabel = document.createElement('label');
+        deloadLabel.className = 'form-label';
+        deloadLabel.textContent = 'Deload Every (weeks)';
+        deloadContent.appendChild(deloadLabel);
+        
+        const deloadInput = createFormInput('', 'number', '0 = disabled', currentDeload || '0');
+        deloadInput.input.min = '0';
+        deloadInput.input.max = '12';
+        deloadContent.appendChild(deloadInput.group);
+        
+        const deloadDesc = document.createElement('div');
+        deloadDesc.style.fontSize = '13px';
+        deloadDesc.style.color = 'var(--color-text-secondary)';
+        deloadDesc.style.marginBottom = 'var(--spacing-md)';
+        deloadDesc.textContent = 'Set to 0 to disable. Deload weeks reduce all weights by 50% for recovery.';
+        deloadContent.appendChild(deloadDesc);
+        
+        // Status display
+        if (lastDeload > 0 && currentDeload > 0) {
+            const weeks = weeksBetween(lastDeload, Date.now());
+            const nextDeload = currentDeload - weeks;
+            
+            const statusText = document.createElement('div');
+            statusText.style.fontSize = '14px';
+            statusText.style.padding = '12px';
+            statusText.style.background = 'rgba(0, 255, 136, 0.1)';
+            statusText.style.borderRadius = 'var(--border-radius-sm)';
+            statusText.style.marginBottom = 'var(--spacing-md)';
+            
+            if (weeks >= currentDeload) {
+                statusText.innerHTML = `<strong style="color: var(--color-accent-warning);">🔄 Next workout will be a DELOAD WEEK!</strong>`;
+            } else {
+                statusText.innerHTML = `Last deload: ${weeks} week${weeks !== 1 ? 's' : ''} ago<br>Next deload: in ${nextDeload} week${nextDeload !== 1 ? 's' : ''}`;
+            }
+            deloadContent.appendChild(statusText);
+        }
+        
+        // Save button
+        const saveDeloadBtn = createButton('SAVE DELOAD SETTINGS', 'btn-secondary', async () => {
+            const weeks = parseInt(deloadInput.input.value) || 0;
+            await db.setSetting('deloadWeeks', weeks);
+            
+            if (weeks > 0 && lastDeload === 0) {
+                await db.setSetting('lastDeloadDate', Date.now());
+            }
+            
+            showToast('Deload settings saved', 'success');
+            router.navigate('setup'); // Refresh to show status
+        });
+        deloadContent.appendChild(saveDeloadBtn);
+        
+        deloadCard.appendChild(deloadContent);
+        content.appendChild(deloadCard);
+        
+        // Divider
+        const divider3 = document.createElement('div');
+        divider3.style.height = '2px';
+        divider3.style.background = 'rgba(255, 255, 255, 0.1)';
+        divider3.style.margin = 'var(--spacing-xl) 0';
+        content.appendChild(divider3);
         
         // About section
         const aboutTitle = document.createElement('h3');

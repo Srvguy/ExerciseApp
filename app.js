@@ -12,6 +12,12 @@ const router = {
     },
     
     back() {
+        // Stop any running timers before navigating
+        if (this.currentView === 'workout' && window.activeTimers) {
+            window.activeTimers.forEach(timer => timer.stop());
+            window.activeTimers = null;
+        }
+        
         if (this.history.length > 0) {
             const previous = this.history.pop();
             this.currentView = previous.view || 'home';
@@ -26,50 +32,103 @@ const router = {
         const view = this.currentView;
         const params = this.currentParams || {};
         
+        console.log(`Rendering view: ${view}`, params);
+        
         // Scroll to top
         window.scrollTo(0, 0);
         
-        // Render appropriate view
-        switch(view) {
-            case 'home':
-                await Views.renderHome();
-                break;
-            case 'custom-workout':
-                await Views.renderCustomWorkout();
-                break;
-            case 'workout':
-                await Views.renderWorkout(params);
-                break;
-            case 'manage-exercises':
-                await Views.renderManageExercises();
-                break;
-            case 'add-edit-exercise':
-                await Views.renderAddEditExercise(params);
-                break;
-            case 'setup':
-                await Views.renderSetup();
-                break;
-            case 'add-edit-category':
-                await Views.renderAddEditCategory(params);
-                break;
-            case 'history':
-                await Views.renderHistory();
-                break;
-            case 'exercise-progress':
-                await Views.renderExerciseProgress(params);
-                break;
-            case 'import-export':
-                await Views.renderImportExport();
-                break;
-            default:
-                await Views.renderHome();
+        try {
+            // Render appropriate view
+            switch(view) {
+                case 'home':
+                    await Views.renderHome();
+                    break;
+                case 'custom-workout':
+                    await Views.renderCustomWorkout();
+                    break;
+                case 'workout':
+                    await Views.renderWorkout(params);
+                    break;
+                case 'manage-exercises':
+                    await Views.renderManageExercises();
+                    break;
+                case 'add-edit-exercise':
+                    await Views.renderAddEditExercise(params);
+                    break;
+                case 'setup':
+                    await Views.renderSetup();
+                    break;
+                case 'add-edit-category':
+                    await Views.renderAddEditCategory(params);
+                    break;
+                case 'history':
+                    await Views.renderHistory();
+                    break;
+                case 'exercise-progress':
+                    await Views.renderExerciseProgress(params);
+                    break;
+                case 'import-export':
+                    await Views.renderImportExport();
+                    break;
+                default:
+                    console.log('Unknown view, rendering home');
+                    await Views.renderHome();
+            }
+            console.log(`Successfully rendered: ${view}`);
+        } catch (error) {
+            console.error(`Error rendering view ${view}:`, error);
+            document.getElementById('app').innerHTML = `
+                <div style="padding: 32px; text-align: center; color: #ff3366;">
+                    <h2 style="color: #ff3366; font-family: Arial, sans-serif;">Error Loading Screen</h2>
+                    <p style="color: #b8b8d1; margin: 20px 0;">Failed to render ${view}</p>
+                    <pre style="color: #7878a3; text-align: left; overflow: auto; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 12px; max-width: 600px; margin: 20px auto;">${error.stack}</pre>
+                    <button onclick="router.navigate('home')" style="margin-top: 20px; padding: 12px 24px; background: #00ff88; color: #0f0f1e; border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">Go Home</button>
+                </div>
+            `;
         }
     }
 };
 
+// App version - increment this when deploying updates
+const APP_VERSION = '1.4.0';
+const APP_BUILD = 9;
+
+// Check for updates and clear old cache
+async function checkForUpdates() {
+    const storedVersion = localStorage.getItem('app_version');
+    
+    if (storedVersion !== APP_VERSION) {
+        console.log(`Update detected: ${storedVersion} → ${APP_VERSION}`);
+        
+        // Clear service worker cache (but not IndexedDB data)
+        if ('serviceWorker' in navigator && 'caches' in window) {
+            const cacheNames = await caches.keys();
+            for (const cacheName of cacheNames) {
+                await caches.delete(cacheName);
+                console.log(`Cleared cache: ${cacheName}`);
+            }
+        }
+        
+        // Store new version
+        localStorage.setItem('app_version', APP_VERSION);
+        localStorage.setItem('app_build', APP_BUILD);
+        
+        // Show update notification
+        if (storedVersion) {
+            showToast(`Updated to v${APP_VERSION}!`, 'success');
+        }
+    }
+}
+
 // App Initialization
 async function initApp() {
     try {
+        console.log(`FitTrack v${APP_VERSION} Build ${APP_BUILD}`);
+        console.log('Starting app initialization...');
+        
+        // Check for updates first
+        await checkForUpdates();
+        
         // Show loading
         document.getElementById('app').innerHTML = `
             <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; flex-direction: column;">
@@ -78,23 +137,30 @@ async function initApp() {
             </div>
         `;
         
+        console.log('Initializing database...');
         // Initialize database
         await db.init();
+        console.log('Database initialized');
         
+        console.log('Loading sample data...');
         // Initialize sample data if needed
         await db.initializeSampleData();
+        console.log('Sample data loaded');
         
         // Start at home view
+        console.log('Navigating to home...');
         router.navigate('home');
         
         console.log('FitTrack initialized successfully');
     } catch (error) {
         console.error('Failed to initialize app:', error);
+        console.error('Error stack:', error.stack);
         document.getElementById('app').innerHTML = `
-            <div style="padding: 32px; text-align: center; color: var(--color-accent-danger);">
-                <h2>Failed to load app</h2>
-                <p>${error.message}</p>
-                <button class="btn btn-primary" onclick="location.reload()">Reload</button>
+            <div style="padding: 32px; text-align: center; color: #ff3366;">
+                <h2 style="color: #ff3366; font-family: 'Archivo Black', sans-serif;">Failed to load app</h2>
+                <p style="color: #b8b8d1; margin: 20px 0;">${error.message}</p>
+                <pre style="color: #7878a3; text-align: left; overflow: auto; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 12px;">${error.stack}</pre>
+                <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; background: #00ff88; color: #0f0f1e; border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">Reload</button>
             </div>
         `;
     }

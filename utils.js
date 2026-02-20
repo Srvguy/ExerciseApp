@@ -431,6 +431,59 @@ function generateId() {
     return Date.now() + Math.random().toString(36).substr(2, 9);
 }
 
+// Calculate weeks between two dates
+function weeksBetween(date1, date2) {
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    return Math.floor(Math.abs(date2 - date1) / msPerWeek);
+}
+
+// Check if this should be a deload week
+async function shouldDeload() {
+    const deloadFrequency = await db.getSetting('deloadWeeks', 0);
+    if (deloadFrequency === 0) return false; // Deload disabled
+    
+    const lastDeload = await db.getSetting('lastDeloadDate', 0);
+    const now = Date.now();
+    
+    if (lastDeload === 0) {
+        // First time - set initial date, don't deload yet
+        await db.setSetting('lastDeloadDate', now);
+        return false;
+    }
+    
+    const weeks = weeksBetween(lastDeload, now);
+    return weeks >= deloadFrequency;
+}
+
+// Apply deload to exercises (reduce weight by 50%)
+function applyDeload(exercises) {
+    return exercises.map(ex => {
+        const deloaded = { ...ex };
+        if (deloaded.weight && !deloaded.weight.toLowerCase().includes('bodyweight')) {
+            const currentWeight = parseWeight(deloaded.weight);
+            if (currentWeight > 0) {
+                const unit = deloaded.weight.toLowerCase().includes('kg') ? ' kg' : ' lbs';
+                deloaded.weight = `${currentWeight * 0.5}${unit}`;
+                deloaded.originalWeight = ex.weight; // Track original for display
+            }
+        }
+        return deloaded;
+    });
+}
+
+// Find previous workout for an exercise (for PDF change tracking)
+async function findPreviousWorkoutForExercise(exerciseName, currentDate, db) {
+    const sessions = await db.getAllWorkoutSessions();
+    const previousSessions = sessions.filter(s => s.date < currentDate).sort((a, b) => b.date - a.date);
+    
+    for (const session of previousSessions) {
+        const records = await db.getWorkoutExerciseRecords(session.id);
+        const record = records.find(r => r.exerciseName === exerciseName);
+        if (record) return record;
+    }
+    return null;
+}
+
 // Export workout history to professional PDF
 async function exportHistoryToPDF(sessions, db) {
     try {
@@ -514,7 +567,21 @@ async function exportHistoryToPDF(sessions, db) {
             doc.setFontSize(9);
             doc.text(`${session.completedCount}/${session.totalCount} completed | ${session.duration} min`, pageWidth - margin, y, { align: 'right' });
             
-            y += 8;
+            y += 5;
+            
+            // Deload week indicator
+            if (session.isDeloadWeek) {
+                doc.setFillColor(255, 170, 0);
+                doc.roundedRect(margin, y, 55, 6, 2, 2, 'F');
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'bold');
+                doc.text('DELOAD WEEK', margin + 2, y + 4);
+                doc.setFont(undefined, 'normal');
+                y += 8;
+            } else {
+                y += 3;
+            }
             
             // Exercise records
             const records = await db.getWorkoutExerciseRecords(session.id);
@@ -527,13 +594,15 @@ async function exportHistoryToPDF(sessions, db) {
                     y = margin;
                 }
                 
-                // Checkmark or bullet
+                // Checkmark or bullet - use text instead of Unicode
                 if (record.completed) {
                     doc.setTextColor(0, 200, 80);
-                    doc.text('✓', margin + 5, y);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('[X]', margin + 5, y);
+                    doc.setFont(undefined, 'normal');
                 } else {
                     doc.setTextColor(200, 200, 200);
-                    doc.text('○', margin + 5, y);
+                    doc.text('[ ]', margin + 5, y);
                 }
                 
                 doc.setTextColor(0, 0, 0);
@@ -548,7 +617,56 @@ async function exportHistoryToPDF(sessions, db) {
                     doc.text(details.join(' | '), margin + 80, y);
                 }
                 
+                // Try to add exercise photo (small thumbnail)
+                try {
+                    const exercise = await db.getExerciseByName(record.exerciseName);
+                    if (exercise && exercise.imagePath && exercise.imagePath.startsWith('data:image')) {
+                        doc.addImage(
+                            exercise.imagePath,
+                            'JPEG',
+                            pageWidth - margin - 25,
+                            y - 3,
+                            20,
+                            15
+                        );
+                    }
+                } catch (error) {
+                    // Silently fail if image can't be added
+                }
+                
                 y += 5;
+                
+                // Show changes from previous workout
+                try {
+                    const previousWorkout = await findPreviousWorkoutForExercise(record.exerciseName, session.date, db);
+                    if (previousWorkout) {
+                        const changes = [];
+                        
+                        if (record.weight !== previousWorkout.weight && record.weight) {
+                            changes.push(`Weight: ${previousWorkout.weight} → ${record.weight}`);
+                        }
+                        if (record.sets !== previousWorkout.sets && record.sets) {
+                            changes.push(`Sets: ${previousWorkout.sets} → ${record.sets}`);
+                        }
+                        if (record.reps !== previousWorkout.reps && record.reps) {
+                            changes.push(`Reps: ${previousWorkout.reps} → ${record.reps}`);
+                        }
+                        
+                        if (changes.length > 0) {
+                            if (y > pageHeight - 20) {
+                                doc.addPage();
+                                y = margin;
+                            }
+                            doc.setTextColor(255, 140, 0);
+                            doc.setFontSize(8);
+                            doc.text(`↑ ${changes.join(', ')}`, margin + 12, y);
+                            y += 4;
+                            doc.setFontSize(9);
+                        }
+                    }
+                } catch (error) {
+                    // Silently fail if can't find previous
+                }
                 
                 // Notes
                 if (record.workoutNotes) {

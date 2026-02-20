@@ -88,6 +88,24 @@ Views.renderHistory = async function() {
             
             leftSection.appendChild(dateEl);
             leftSection.appendChild(categoryBadge);
+            
+            // Deload badge
+            if (session.isDeloadWeek) {
+                const deloadBadge = document.createElement('div');
+                deloadBadge.style.display = 'inline-block';
+                deloadBadge.style.padding = '4px 12px';
+                deloadBadge.style.borderRadius = '20px';
+                deloadBadge.style.fontSize = '11px';
+                deloadBadge.style.fontWeight = '700';
+                deloadBadge.style.textTransform = 'uppercase';
+                deloadBadge.style.marginTop = '4px';
+                deloadBadge.style.marginLeft = '8px';
+                deloadBadge.style.background = 'var(--color-accent-warning)';
+                deloadBadge.style.color = '#000';
+                deloadBadge.textContent = '🔄 DELOAD';
+                leftSection.appendChild(deloadBadge);
+            }
+            
             leftSection.appendChild(summaryEl);
             
             const deleteBtn = createButton('🗑️', 'btn-icon btn-danger', async () => {

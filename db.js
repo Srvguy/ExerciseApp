@@ -67,6 +67,12 @@ class Database {
                     historyStore.createIndex('exerciseId', 'exerciseId', { unique: false });
                     historyStore.createIndex('date', 'date', { unique: false });
                 }
+                
+                // App settings store
+                if (!db.objectStoreNames.contains('appSettings')) {
+                    db.createObjectStore('appSettings', { keyPath: 'key' });
+                }
+                
                 console.log('All object stores created successfully');
             };
         });
@@ -155,6 +161,7 @@ class Database {
             timerSeconds: exercise.timerSeconds || 0,
             restTimerSeconds: exercise.restTimerSeconds || 0,
             progressionThreshold: exercise.progressionThreshold || 3,
+            progressionIncrement: exercise.progressionIncrement || 5,
             imagePath: exercise.imagePath || '',
             lastUsedDate: 0,
             workoutsSinceLastUse: 0
@@ -381,6 +388,21 @@ class Database {
             const exerciseId = await this.addExercise(exercise);
             await this.setExerciseCategories(exerciseId, categoryIds);
         }
+    }
+    
+    // App Settings methods
+    async getSetting(key, defaultValue = null) {
+        const setting = await this.get('appSettings', key);
+        return setting ? setting.value : defaultValue;
+    }
+    
+    async setSetting(key, value) {
+        return await this.put('appSettings', { key, value });
+    }
+    
+    async getExerciseByName(name) {
+        const exercises = await this.getAllExercises();
+        return exercises.find(ex => ex.name === name);
     }
 }
 
