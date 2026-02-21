@@ -91,31 +91,53 @@ const router = {
 
 // App version - increment this when deploying updates
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 10;
+const APP_BUILD = 11;
+
+// Force cache refresh on load - multiple strategies
+async function forceCacheRefresh() {
+    try {
+        // Strategy 1: Clear all caches
+        if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            console.log('Clearing caches:', cacheNames);
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+        
+        // Strategy 2: Unregister service worker
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+                await registration.unregister();
+                console.log('Unregistered service worker');
+            }
+        }
+    } catch (error) {
+        console.error('Error clearing cache:', error);
+    }
+}
 
 // Check for updates and clear old cache
 async function checkForUpdates() {
     const storedVersion = localStorage.getItem('app_version');
+    const storedBuild = localStorage.getItem('app_build');
     
-    if (storedVersion !== APP_VERSION) {
-        console.log(`Update detected: ${storedVersion} → ${APP_VERSION}`);
+    console.log(`Current: v${APP_VERSION} Build ${APP_BUILD}`);
+    console.log(`Stored: v${storedVersion} Build ${storedBuild}`);
+    
+    // If version OR build changed, force refresh
+    if (storedVersion !== APP_VERSION || storedBuild !== String(APP_BUILD)) {
+        console.log(`Update detected! Forcing cache refresh...`);
         
-        // Clear service worker cache (but not IndexedDB data)
-        if ('serviceWorker' in navigator && 'caches' in window) {
-            const cacheNames = await caches.keys();
-            for (const cacheName of cacheNames) {
-                await caches.delete(cacheName);
-                console.log(`Cleared cache: ${cacheName}`);
-            }
-        }
+        // Clear everything
+        await forceCacheRefresh();
         
         // Store new version
         localStorage.setItem('app_version', APP_VERSION);
-        localStorage.setItem('app_build', APP_BUILD);
+        localStorage.setItem('app_build', String(APP_BUILD));
         
         // Show update notification
-        if (storedVersion) {
-            showToast(`Updated to v${APP_VERSION}!`, 'success');
+        if (storedVersion || storedBuild) {
+            showToast(`Updated to v${APP_VERSION} Build ${APP_BUILD}!`, 'success');
         }
     }
 }
@@ -134,6 +156,7 @@ async function initApp() {
             <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; flex-direction: column;">
                 <div class="spinner"></div>
                 <div style="margin-top: 24px; font-size: 18px; color: var(--color-text-secondary);">Loading FitTrack...</div>
+                <div style="margin-top: 8px; font-size: 12px; color: var(--color-text-tertiary);">v${APP_VERSION} Build ${APP_BUILD}</div>
             </div>
         `;
         
