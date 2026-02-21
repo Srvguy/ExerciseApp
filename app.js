@@ -91,7 +91,7 @@ const router = {
 
 // App version - increment this when deploying updates
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 11;
+const APP_BUILD = 12;
 
 // Force cache refresh on load - multiple strategies
 async function forceCacheRefresh() {
