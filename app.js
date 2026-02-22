@@ -91,19 +91,11 @@ const router = {
 
 // App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 18;
+const APP_BUILD = 11;
 
 // Check for updates from server
 async function checkForUpdates() {
     try {
-        // Don't check if we just attempted an update
-        const justUpdated = sessionStorage.getItem('just_updated');
-        if (justUpdated) {
-            console.log('Skipping update check - just updated');
-            sessionStorage.removeItem('just_updated');
-            return;
-        }
-        
         // Only check if online
         if (!navigator.onLine) return;
         
@@ -161,9 +153,6 @@ function showUpdateNotification(newVersion, newBuild) {
     updateNowBtn.style.cursor = 'pointer';
     updateNowBtn.style.marginRight = '8px';
     updateNowBtn.onclick = async () => {
-        // Set flag to prevent notification showing again immediately after reload
-        sessionStorage.setItem('just_updated', 'true');
-        
         // Unregister service worker and force reload
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -216,7 +205,7 @@ function showUpdateNotification(newVersion, newBuild) {
 // App Initialization
 async function initApp() {
     try {
-        console.log(`FitTrack v${APP_VERSION} Buiild ${APP_BUILD}`);
+        console.log(`FitTrack v${APP_VERSION} Build ${APP_BUILD}`);
         
         // Clean up URL if we just updated
         const url = new URL(window.location);
