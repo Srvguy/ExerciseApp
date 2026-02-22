@@ -91,7 +91,7 @@ const router = {
 
 // App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 15;
+const APP_BUILD = 16;
 
 // Check for updates from server
 async function checkForUpdates() {
