@@ -1,5 +1,5 @@
 // Service Worker for PWA offline support
-const CACHE_NAME = 'fittrack-v1.4.0';
+const CACHE_NAME = 'fittrack-v1.4.0-build11';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -26,35 +26,25 @@ self.addEventListener('install', event => {
     );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - Network first, cache fallback
 self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then(response => {
-                // Cache hit - return response
-                if (response) {
-                    return response;
-                }
-                
-                // Clone the request
-                const fetchRequest = event.request.clone();
-                
-                return fetch(fetchRequest).then(response => {
-                    // Check if valid response
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
-                        return response;
-                    }
-                    
-                    // Clone the response
+                // If we got a valid response, cache it and return
+                if (response && response.status === 200 && response.type === 'basic') {
                     const responseToCache = response.clone();
-                    
                     caches.open(CACHE_NAME)
                         .then(cache => {
                             cache.put(event.request, responseToCache);
                         });
-                    
-                    return response;
-                });
+                }
+                return response;
+            })
+            .catch(() => {
+                // Network failed, try cache
+                console.log('[SW] Network failed, trying cache for:', event.request.url);
+                return caches.match(event.request);
             })
     );
 });
