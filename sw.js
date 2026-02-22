@@ -1,5 +1,5 @@
 // Service Worker for PWA offline support
-const CACHE_NAME = 'fittrack-v1.4.0-build12';
+const CACHE_NAME = 'fittrack-v1.4.0-build13';
 const urlsToCache = [
     './',
     './index.html',
@@ -26,26 +26,30 @@ self.addEventListener('install', event => {
     );
 });
 
-// Fetch event - Network first, cache fallback
+// Fetch event - Never cache JS/HTML, only assets for offline
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        fetch(event.request)
-            .then(response => {
-                // If we got a valid response, cache it and return
-                if (response && response.status === 200 && response.type === 'basic') {
-                    const responseToCache = response.clone();
-                    caches.open(CACHE_NAME)
-                        .then(cache => {
-                            cache.put(event.request, responseToCache);
-                        });
-                }
-                return response;
-            })
-            .catch(() => {
-                // Network failed, try cache
-                console.log('[SW] Network failed, trying cache for:', event.request.url);
+    const url = new URL(event.request.url);
+    
+    // Never cache app files - always fetch fresh
+    if (url.pathname.endsWith('.js') || 
+        url.pathname.endsWith('.html') || 
+        url.pathname.endsWith('.css') ||
+        url.pathname === './' ||
+        url.pathname.endsWith('/')) {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                // Only use cache if completely offline
                 return caches.match(event.request);
             })
+        );
+        return;
+    }
+    
+    // For other assets (images, etc), use cache first
+    event.respondWith(
+        caches.match(event.request).then(response => {
+            return response || fetch(event.request);
+        })
     );
 });
 
