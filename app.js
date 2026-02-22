@@ -89,67 +89,14 @@ const router = {
     }
 };
 
-// App version - increment this when deploying updates
+// App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 13;
-
-// Force cache refresh on load - multiple strategies
-async function forceCacheRefresh() {
-    try {
-        // Strategy 1: Clear all caches
-        if ('caches' in window) {
-            const cacheNames = await caches.keys();
-            console.log('Clearing caches:', cacheNames);
-            await Promise.all(cacheNames.map(name => caches.delete(name)));
-        }
-        
-        // Strategy 2: Unregister service worker
-        if ('serviceWorker' in navigator) {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (const registration of registrations) {
-                await registration.unregister();
-                console.log('Unregistered service worker');
-            }
-        }
-    } catch (error) {
-        console.error('Error clearing cache:', error);
-    }
-}
-
-// Check for updates and clear old cache
-async function checkForUpdates() {
-    const storedVersion = localStorage.getItem('app_version');
-    const storedBuild = localStorage.getItem('app_build');
-    
-    console.log(`Current: v${APP_VERSION} Build ${APP_BUILD}`);
-    console.log(`Stored: v${storedVersion} Build ${storedBuild}`);
-    
-    // If version OR build changed, force refresh
-    if (storedVersion !== APP_VERSION || storedBuild !== String(APP_BUILD)) {
-        console.log(`Update detected! Forcing cache refresh...`);
-        
-        // Clear everything
-        await forceCacheRefresh();
-        
-        // Store new version
-        localStorage.setItem('app_version', APP_VERSION);
-        localStorage.setItem('app_build', String(APP_BUILD));
-        
-        // Show update notification
-        if (storedVersion || storedBuild) {
-            showToast(`Updated to v${APP_VERSION} Build ${APP_BUILD}!`, 'success');
-        }
-    }
-}
+const APP_BUILD = 11;
 
 // App Initialization
 async function initApp() {
     try {
         console.log(`FitTrack v${APP_VERSION} Build ${APP_BUILD}`);
-        console.log('Starting app initialization...');
-        
-        // Check for updates first
-        await checkForUpdates();
         
         // Show loading
         document.getElementById('app').innerHTML = `
@@ -160,29 +107,22 @@ async function initApp() {
             </div>
         `;
         
-        console.log('Initializing database...');
         // Initialize database
         await db.init();
-        console.log('Database initialized');
         
-        console.log('Loading sample data...');
         // Initialize sample data if needed
         await db.initializeSampleData();
-        console.log('Sample data loaded');
         
         // Start at home view
-        console.log('Navigating to home...');
         router.navigate('home');
         
         console.log('FitTrack initialized successfully');
     } catch (error) {
         console.error('Failed to initialize app:', error);
-        console.error('Error stack:', error.stack);
         document.getElementById('app').innerHTML = `
             <div style="padding: 32px; text-align: center; color: #ff3366;">
                 <h2 style="color: #ff3366; font-family: 'Archivo Black', sans-serif;">Failed to load app</h2>
                 <p style="color: #b8b8d1; margin: 20px 0;">${error.message}</p>
-                <pre style="color: #7878a3; text-align: left; overflow: auto; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 12px;">${error.stack}</pre>
                 <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; background: #00ff88; color: #0f0f1e; border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">Reload</button>
             </div>
         `;

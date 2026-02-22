@@ -1,5 +1,5 @@
 // Service Worker for PWA offline support
-const CACHE_NAME = 'fittrack-v1';
+const CACHE_NAME = 'fittrack-v1.4.0';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -15,12 +15,14 @@ const urlsToCache = [
 
 // Install event - cache resources
 self.addEventListener('install', event => {
+    console.log('[SW] Installing...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Opened cache');
+                console.log('[SW] Opened cache');
                 return cache.addAll(urlsToCache);
             })
+            .then(() => self.skipWaiting()) // Activate immediately
     );
 });
 
@@ -59,16 +61,20 @@ self.addEventListener('fetch', event => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
+    console.log('[SW] Activating...');
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheWhitelist.indexOf(cacheName) === -1) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
+        caches.keys()
+            .then(cacheNames => {
+                return Promise.all(
+                    cacheNames.map(cacheName => {
+                        if (cacheWhitelist.indexOf(cacheName) === -1) {
+                            console.log('[SW] Deleting old cache:', cacheName);
+                            return caches.delete(cacheName);
+                        }
+                    })
+                );
+            })
+            .then(() => self.clients.claim()) // Take control immediately
     );
 });
