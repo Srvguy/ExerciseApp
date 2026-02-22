@@ -66,7 +66,7 @@ const Views = {
         versionFooter.style.fontSize = '11px';
         versionFooter.style.color = 'var(--color-text-tertiary)';
         versionFooter.style.fontWeight = '600';
-        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.4.0</span> • Build 11';
+        versionFooter.innerHTML = `FitTrack <span style="color: var(--color-accent-primary);">v${APP_VERSION}</span> • Build ${APP_BUILD}`;
         content.appendChild(versionFooter);
         
         container.appendChild(content);
