@@ -1,16 +1,16 @@
 // Service Worker for PWA offline support
 const CACHE_NAME = 'fittrack-v1.4.0-build11';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/db.js',
-    '/utils.js',
-    '/components.js',
-    '/views.js',
-    '/views-part2.js',
-    '/app.js',
-    '/manifest.json'
+    './',
+    './index.html',
+    './styles.css',
+    './db.js',
+    './utils.js',
+    './components.js',
+    './views.js',
+    './views-part2.js',
+    './app.js',
+    './manifest.json'
 ];
 
 // Install event - cache resources
