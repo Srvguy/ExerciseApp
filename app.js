@@ -110,6 +110,11 @@ async function initApp() {
         // Initialize database
         await db.init();
         
+        // Load theme preference
+        const savedTheme = await db.getSetting('theme', 'dark');
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        console.log('Theme loaded:', savedTheme);
+        
         // Initialize sample data if needed
         await db.initializeSampleData();
         

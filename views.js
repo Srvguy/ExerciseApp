@@ -66,7 +66,7 @@ const Views = {
         versionFooter.style.fontSize = '11px';
         versionFooter.style.color = 'var(--color-text-tertiary)';
         versionFooter.style.fontWeight = '600';
-        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.4.0</span> • Build 10';
+        versionFooter.innerHTML = 'FitTrack <span style="color: var(--color-accent-primary);">v1.4.0</span> • Build 11';
         content.appendChild(versionFooter);
         
         container.appendChild(content);
@@ -1349,6 +1349,59 @@ const Views = {
         divider3.style.background = 'rgba(255, 255, 255, 0.1)';
         divider3.style.margin = 'var(--spacing-xl) 0';
         content.appendChild(divider3);
+        
+        // Theme Settings
+        const themeTitle = document.createElement('h3');
+        themeTitle.textContent = 'APPEARANCE';
+        themeTitle.style.marginBottom = 'var(--spacing-md)';
+        content.appendChild(themeTitle);
+        
+        const themeCard = createCard('');
+        const themeContent = document.createElement('div');
+        
+        // Get current theme
+        const currentTheme = await db.getSetting('theme', 'dark');
+        
+        const themeLabel = document.createElement('label');
+        themeLabel.className = 'form-label';
+        themeLabel.textContent = 'Color Theme';
+        themeContent.appendChild(themeLabel);
+        
+        // Theme options
+        const themeOptions = document.createElement('div');
+        themeOptions.style.display = 'flex';
+        themeOptions.style.gap = 'var(--spacing-sm)';
+        themeOptions.style.marginBottom = 'var(--spacing-md)';
+        
+        const darkBtn = createButton('🌙 Dark', currentTheme === 'dark' ? 'btn-primary' : 'btn-secondary', async () => {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            await db.setSetting('theme', 'dark');
+            showToast('Dark theme activated', 'success');
+            router.navigate('setup'); // Refresh to update buttons
+        });
+        darkBtn.style.flex = '1';
+        
+        const lightBtn = createButton('☀️ Light', currentTheme === 'light' ? 'btn-primary' : 'btn-secondary', async () => {
+            document.documentElement.setAttribute('data-theme', 'light');
+            await db.setSetting('theme', 'light');
+            showToast('Light theme activated', 'success');
+            router.navigate('setup'); // Refresh to update buttons
+        });
+        lightBtn.style.flex = '1';
+        
+        themeOptions.appendChild(darkBtn);
+        themeOptions.appendChild(lightBtn);
+        themeContent.appendChild(themeOptions);
+        
+        themeCard.appendChild(themeContent);
+        content.appendChild(themeCard);
+        
+        // Divider
+        const divider4 = document.createElement('div');
+        divider4.style.height = '2px';
+        divider4.style.background = 'rgba(255, 255, 255, 0.1)';
+        divider4.style.margin = 'var(--spacing-xl) 0';
+        content.appendChild(divider4);
         
         // About section
         const aboutTitle = document.createElement('h3');

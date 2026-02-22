@@ -31,6 +31,29 @@
     --shadow-glow: 0 0 20px rgba(0, 255, 136, 0.3);
 }
 
+/* Light theme */
+[data-theme="light"] {
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f5f5f5;
+    --color-bg-tertiary: #e0e0e0;
+    --color-bg-card: #fafafa;
+    
+    --color-accent-primary: #00b359;
+    --color-accent-secondary: #0099cc;
+    --color-accent-danger: #d32f2f;
+    --color-accent-warning: #f57c00;
+    --color-accent-purple: #7b1fa2;
+    
+    --color-text-primary: #1a1a2e;
+    --color-text-secondary: #4a4a5e;
+    --color-text-tertiary: #7a7a8e;
+    
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+    --shadow-glow: 0 0 20px rgba(0, 179, 89, 0.3);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -66,14 +89,15 @@ h3 { font-size: clamp(20px, 5vw, 28px); }
 h4 { font-size: clamp(18px, 4vw, 24px); }
 
 /* Header */
+/* Mobile-first header */
 .app-header {
     background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
-    padding: var(--spacing-lg) var(--spacing-md);
-    box-shadow: var(--shadow-md);
+    padding: 12px 16px;
+    box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
     z-index: 100;
-    border-bottom: 2px solid var(--color-accent-primary);
+    border-bottom: 1px solid var(--color-accent-primary);
 }
 
 .header-content {
@@ -82,6 +106,7 @@ h4 { font-size: clamp(18px, 4vw, 24px); }
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
 }
 
 .app-title {
@@ -90,26 +115,60 @@ h4 { font-size: clamp(18px, 4vw, 24px); }
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin: 0;
-    animation: titlePulse 3s ease-in-out infinite;
+    font-size: 20px;
+}
+
+.back-button {
+    background: transparent;
+    border: none;
+    color: var(--color-accent-primary);
+    font-size: 22px;
+    padding: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+    min-width: 36px;
+}
+
+/* Desktop overrides */
+@media (min-width: 768px) {
+    .app-header {
+        padding: 24px 16px;
+        box-shadow: var(--shadow-md);
+        border-bottom: 2px solid var(--color-accent-primary);
+    }
+    
+    .app-title {
+        font-size: 32px;
+        animation: titlePulse 3s ease-in-out infinite;
+    }
+    
+    .back-button {
+        font-size: 28px;
+        padding: 4px 8px;
+    }
+    
+    .back-button:hover {
+        transform: translateX(-4px);
+    }
 }
 
 @keyframes titlePulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.85; }
 }
+    50% { opacity: 0.85; }
+}
 
 .back-button {
     background: transparent;
-    border: 2px solid var(--color-accent-primary);
+    border: none;
     color: var(--color-accent-primary);
-    font-family: var(--font-display);
-    font-size: 13px;
-    padding: 8px 16px;
-    border-radius: var(--border-radius-sm);
+    font-size: 28px;
+    padding: 4px 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+    line-height: 1;
 }
 
 .back-button:hover {
