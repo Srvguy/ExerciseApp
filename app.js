@@ -216,7 +216,7 @@ function showUpdateNotification(newVersion, newBuild) {
 // App Initialization
 async function initApp() {
     try {
-        console.log(`FitTrack v${APP_VERSION} Build ${APP_BUILD}`);
+        console.log(`FitTrack v${APP_VERSION} Buiild ${APP_BUILD}`);
         
         // Clean up URL if we just updated
         const url = new URL(window.location);
