@@ -91,7 +91,7 @@ const router = {
 
 // App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 15;
+const APP_BUILD = 11;
 
 // Check for updates from server
 async function checkForUpdates() {
@@ -142,12 +142,52 @@ function showUpdateNotification(newVersion, newBuild) {
     notification.style.fontWeight = '600';
     notification.style.animation = 'slideDown 0.3s ease';
     
+    const updateNowBtn = document.createElement('button');
+    updateNowBtn.textContent = 'Update Now';
+    updateNowBtn.style.background = '#fff';
+    updateNowBtn.style.color = '#000';
+    updateNowBtn.style.border = 'none';
+    updateNowBtn.style.padding = '8px 20px';
+    updateNowBtn.style.borderRadius = '8px';
+    updateNowBtn.style.fontWeight = '700';
+    updateNowBtn.style.cursor = 'pointer';
+    updateNowBtn.style.marginRight = '8px';
+    updateNowBtn.onclick = async () => {
+        // Unregister service worker and force reload
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+                await registration.unregister();
+            }
+        }
+        // Clear all caches
+        if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            for (const cacheName of cacheNames) {
+                await caches.delete(cacheName);
+            }
+        }
+        // Hard reload
+        window.location.reload(true);
+    };
+    
+    const laterBtn = document.createElement('button');
+    laterBtn.textContent = 'Later';
+    laterBtn.style.background = 'rgba(255,255,255,0.2)';
+    laterBtn.style.color = '#fff';
+    laterBtn.style.border = 'none';
+    laterBtn.style.padding = '8px 20px';
+    laterBtn.style.borderRadius = '8px';
+    laterBtn.style.fontWeight = '700';
+    laterBtn.style.cursor = 'pointer';
+    laterBtn.onclick = () => notification.remove();
+    
     notification.innerHTML = `
         <div style="font-size: 16px; margin-bottom: 8px;">🎉 Update Available!</div>
         <div style="font-size: 13px; margin-bottom: 12px;">Version ${newVersion} Build ${newBuild} is ready</div>
-        <button onclick="location.reload(true)" style="background: #fff; color: #000; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-right: 8px;">Update Now</button>
-        <button onclick="this.parentElement.remove()" style="background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 700; cursor: pointer;">Later</button>
     `;
+    notification.appendChild(updateNowBtn);
+    notification.appendChild(laterBtn);
     
     document.body.appendChild(notification);
     
