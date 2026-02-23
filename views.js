@@ -387,17 +387,17 @@ const Views = {
         actionsContainer.style.flexWrap = 'wrap';
         actionsContainer.style.marginTop = 'var(--spacing-md)';
         
-        const selectAllBtn = createButton('SELECT ALL', 'btn-secondary', () => {
+        const selectAllBtn = createButton('SELECT ALL', 'btn-secondary', async () => {
             allExercises.forEach(e => selectedIds.add(e.id));
             counter.textContent = `${selectedIds.size} exercise${selectedIds.size !== 1 ? 's' : ''} selected`;
-            renderExerciseList();
+            await renderExerciseList();
         });
         selectAllBtn.style.flex = '1';
         
-        const clearAllBtn = createButton('CLEAR ALL', 'btn-warning', () => {
+        const clearAllBtn = createButton('CLEAR ALL', 'btn-warning', async () => {
             selectedIds.clear();
             counter.textContent = '0 exercises selected';
-            renderExerciseList();
+            await renderExerciseList();
         });
         clearAllBtn.style.flex = '1';
         

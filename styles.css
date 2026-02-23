@@ -66,6 +66,10 @@
     color: #ffffff;
 }
 
+[data-theme="light"] .btn-large {
+    color: #ffffff;
+}
+
 * {
     margin: 0;
     padding: 0;

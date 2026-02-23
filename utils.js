@@ -228,6 +228,7 @@ function calculateProgression(exerciseHistory, currentWeight, progressionThresho
 // Count consecutive completions at current weight
 function countConsecutiveCompletions(exerciseHistory, currentWeight) {
     if (!exerciseHistory || exerciseHistory.length === 0) return 0;
+    if (!currentWeight) return 0;  // No weight set yet
     
     const completed = exerciseHistory
         .filter(h => h.completed)
@@ -235,14 +236,13 @@ function countConsecutiveCompletions(exerciseHistory, currentWeight) {
     
     if (completed.length === 0) return 0;
     
-    const recentWeight = completed[0].weight;
+    // Only count completions at the CURRENT weight (not historical weight)
     let count = 0;
-    
     for (const entry of completed) {
-        if (entry.weight === recentWeight) {
+        if (entry.weight === currentWeight || entry.weight === currentWeight.replace(' lbs', '').replace(' kg', '')) {
             count++;
         } else {
-            break;
+            break;  // Stop at first different weight
         }
     }
     
@@ -439,8 +439,17 @@ function weeksBetween(date1, date2) {
 
 // Check if this should be a deload week
 async function shouldDeload() {
-    const deloadFrequency = await db.getSetting('deloadWeeks', 0);
-    if (deloadFrequency === 0) return false; // Deload disabled
+    const deloadFrequency = await db.getSetting('deloadWeeks');
+    
+    // If never set (undefined/null), default to disabled
+    if (deloadFrequency === null || deloadFrequency === undefined) {
+        return false;
+    }
+    
+    // If explicitly set to 0, enable manual deload
+    if (deloadFrequency === 0) {
+        return true;
+    }
     
     const lastDeload = await db.getSetting('lastDeloadDate', 0);
     const now = Date.now();
