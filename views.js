@@ -282,7 +282,7 @@ const Views = {
         content.className = 'content-container';
         
         // Get all exercises in this category
-        const allExercises = await db.getExercisesByCategory(categoryId);
+        const allExercises = await db.getCategoryExercises(categoryId);
         const selectedIds = new Set();
         
         // Counter
