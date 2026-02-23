@@ -12,6 +12,42 @@ const Views = {
         const content = document.createElement('div');
         content.className = 'content-container';
         
+        // Check if this should be a deload week
+        const isDeload = await shouldDeload();
+        if (isDeload) {
+            const deloadBanner = document.createElement('div');
+            deloadBanner.style.padding = '20px';
+            deloadBanner.style.background = 'linear-gradient(135deg, rgba(255, 170, 0, 0.15), rgba(255, 140, 0, 0.15))';
+            deloadBanner.style.border = '3px solid var(--color-accent-warning)';
+            deloadBanner.style.borderRadius = 'var(--border-radius)';
+            deloadBanner.style.marginBottom = 'var(--spacing-lg)';
+            deloadBanner.style.textAlign = 'center';
+            deloadBanner.style.animation = 'pulse 2s ease-in-out infinite';
+            
+            const deloadIcon = document.createElement('div');
+            deloadIcon.style.fontSize = '40px';
+            deloadIcon.style.marginBottom = '8px';
+            deloadIcon.textContent = '🔄';
+            
+            const deloadTitle = document.createElement('div');
+            deloadTitle.style.fontSize = '24px';
+            deloadTitle.style.fontWeight = '900';
+            deloadTitle.style.color = 'var(--color-accent-warning)';
+            deloadTitle.style.marginBottom = '4px';
+            deloadTitle.textContent = 'DELOAD WEEK';
+            
+            const deloadText = document.createElement('div');
+            deloadText.style.fontSize = '15px';
+            deloadText.style.color = 'var(--color-text-secondary)';
+            deloadText.style.fontWeight = '600';
+            deloadText.textContent = 'All weights will be reduced by 50% for recovery';
+            
+            deloadBanner.appendChild(deloadIcon);
+            deloadBanner.appendChild(deloadTitle);
+            deloadBanner.appendChild(deloadText);
+            content.appendChild(deloadBanner);
+        }
+        
         // Custom Workout Button
         const customBtn = createButton('CUSTOM WORKOUT', 'btn-large btn-purple', () => {
             router.navigate('custom-workout');
@@ -22,7 +58,12 @@ const Views = {
         const categories = await db.getAllCategories();
         for (const category of categories) {
             const btn = createButton(category.name, 'btn-large', () => {
-                router.navigate('workout', { categoryId: category.id });
+                // Check if random selection or manual selection
+                if (category.isRandom === false) {
+                    router.navigate('selectExercises', { categoryId: category.id });
+                } else {
+                    router.navigate('workout', { categoryId: category.id });
+                }
             });
             btn.style.background = `linear-gradient(135deg, ${category.color}, ${shadeColor(category.color, -20)})`;
             content.appendChild(btn);
@@ -226,6 +267,160 @@ const Views = {
         container.appendChild(content);
     },
 
+    // Select Exercises Screen (for non-random categories)
+    async renderSelectExercises(params) {
+        const { categoryId } = params;
+        const category = await db.getCategory(categoryId);
+        
+        const container = document.getElementById('app');
+        container.innerHTML = '';
+        
+        const header = createHeader(`SELECT EXERCISES - ${category.name}`, true);
+        container.appendChild(header);
+        
+        const content = document.createElement('div');
+        content.className = 'content-container';
+        
+        // Get all exercises in this category
+        const allExercises = await db.getExercisesByCategory(categoryId);
+        const selectedIds = new Set();
+        
+        // Counter
+        const counter = document.createElement('div');
+        counter.style.padding = 'var(--spacing-md)';
+        counter.style.textAlign = 'center';
+        counter.style.fontSize = '18px';
+        counter.style.fontWeight = '700';
+        counter.style.color = 'var(--color-accent-primary)';
+        counter.textContent = '0 exercises selected';
+        content.appendChild(counter);
+        
+        // Exercise list
+        const listContainer = document.createElement('div');
+        listContainer.className = 'flex flex-column gap-sm';
+        content.appendChild(listContainer);
+        
+        const renderExerciseList = async () => {
+            listContainer.innerHTML = '';
+            
+            for (const exercise of allExercises) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.cursor = 'pointer';
+                card.style.transition = 'all 0.2s ease';
+                
+                const itemContainer = document.createElement('div');
+                itemContainer.style.display = 'flex';
+                itemContainer.style.gap = '16px';
+                itemContainer.style.alignItems = 'flex-start';
+                
+                const checkbox = createCheckbox(selectedIds.has(exercise.id), (checked) => {
+                    if (checked) {
+                        selectedIds.add(exercise.id);
+                    } else {
+                        selectedIds.delete(exercise.id);
+                    }
+                    counter.textContent = `${selectedIds.size} exercise${selectedIds.size !== 1 ? 's' : ''} selected`;
+                });
+                checkbox.style.marginTop = '4px';
+                
+                const details = document.createElement('div');
+                details.style.flex = '1';
+                
+                const name = document.createElement('div');
+                name.style.fontSize = '18px';
+                name.style.fontWeight = '700';
+                name.style.marginBottom = '4px';
+                name.textContent = exercise.name;
+                
+                // Last used date
+                const lastUsed = document.createElement('div');
+                lastUsed.style.fontSize = '14px';
+                lastUsed.style.color = 'var(--color-text-secondary)';
+                if (exercise.lastUsedDate && exercise.lastUsedDate > 0) {
+                    lastUsed.textContent = `Last used: ${formatDate(exercise.lastUsedDate)}`;
+                } else {
+                    lastUsed.textContent = 'Last used: never';
+                }
+                
+                // Exercise stats
+                const meta = document.createElement('div');
+                meta.style.fontSize = '14px';
+                meta.style.color = 'var(--color-text-tertiary)';
+                meta.style.marginTop = '4px';
+                
+                const statsParts = [];
+                if (exercise.sets) statsParts.push(`${exercise.sets} sets`);
+                if (exercise.reps) statsParts.push(`${exercise.reps} reps`);
+                if (exercise.weight) statsParts.push(exercise.weight);
+                
+                const stats = document.createElement('div');
+                stats.style.fontSize = '14px';
+                stats.style.color = 'var(--color-text-secondary)';
+                stats.style.marginTop = '4px';
+                stats.textContent = statsParts.join(' × ');
+                
+                details.appendChild(name);
+                details.appendChild(lastUsed);
+                if (statsParts.length > 0) details.appendChild(stats);
+                
+                itemContainer.appendChild(checkbox);
+                itemContainer.appendChild(details);
+                
+                card.appendChild(itemContainer);
+                
+                card.onclick = (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.click();
+                    }
+                };
+                
+                listContainer.appendChild(card);
+            }
+        };
+        
+        await renderExerciseList();
+        
+        // Action buttons
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'flex gap-sm';
+        actionsContainer.style.flexWrap = 'wrap';
+        actionsContainer.style.marginTop = 'var(--spacing-md)';
+        
+        const selectAllBtn = createButton('SELECT ALL', 'btn-secondary', () => {
+            allExercises.forEach(e => selectedIds.add(e.id));
+            counter.textContent = `${selectedIds.size} exercise${selectedIds.size !== 1 ? 's' : ''} selected`;
+            renderExerciseList();
+        });
+        selectAllBtn.style.flex = '1';
+        
+        const clearAllBtn = createButton('CLEAR ALL', 'btn-warning', () => {
+            selectedIds.clear();
+            counter.textContent = '0 exercises selected';
+            renderExerciseList();
+        });
+        clearAllBtn.style.flex = '1';
+        
+        actionsContainer.appendChild(selectAllBtn);
+        actionsContainer.appendChild(clearAllBtn);
+        content.appendChild(actionsContainer);
+        
+        const startBtn = createButton('START WORKOUT', 'btn-large btn-primary', () => {
+            if (selectedIds.size === 0) {
+                showToast('Please select at least one exercise', 'warning');
+                return;
+            }
+            router.navigate('workout', { 
+                categoryId: categoryId,
+                customExerciseIds: Array.from(selectedIds)
+            });
+        });
+        startBtn.style.marginTop = 'var(--spacing-md)';
+        content.appendChild(startBtn);
+        
+        container.appendChild(content);
+    },
+
     // Workout Screen
     async renderWorkout(params) {
         const { categoryId, customExerciseIds } = params;
@@ -353,8 +548,17 @@ const Views = {
                 checkboxContainer.className = 'checkbox-container';
                 checkboxContainer.style.justifyContent = 'flex-start';
                 
-                const checkbox = createCheckbox(isCompleted, (checked) => {
+                const checkbox = createCheckbox(isCompleted, async (checked) => {
                     if (checked) {
+                        // Animate card sliding down before re-render
+                        const card = itemContainer;
+                        card.style.transition = 'all 0.5s ease-out';
+                        card.style.opacity = '0.5';
+                        card.style.transform = 'translateY(20px)';
+                        
+                        // Wait for animation
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
                         completedSet.add(exercise.id);
                         // Stop timer if this exercise has one
                         const timer = timers.get(exercise.id);
@@ -1299,7 +1503,7 @@ const Views = {
         deloadLabel.textContent = 'Deload Every (weeks)';
         deloadContent.appendChild(deloadLabel);
         
-        const deloadInput = createFormInput('', 'number', '0 = disabled', currentDeload || '0');
+        const deloadInput = createFormInput('', 'number', '0 = deload now', currentDeload || '0');
         deloadInput.input.min = '0';
         deloadInput.input.max = '12';
         deloadContent.appendChild(deloadInput.group);
@@ -1308,7 +1512,7 @@ const Views = {
         deloadDesc.style.fontSize = '13px';
         deloadDesc.style.color = 'var(--color-text-secondary)';
         deloadDesc.style.marginBottom = 'var(--spacing-md)';
-        deloadDesc.textContent = 'Set to 0 to disable. Deload weeks reduce all weights by 50% for recovery.';
+        deloadDesc.textContent = 'Set to 0 to make next workout a deload. Set to 1-12 to auto-deload every X weeks. Deload weeks reduce all weights by 50% for recovery.';
         deloadContent.appendChild(deloadDesc);
         
         // Status display
@@ -1457,6 +1661,58 @@ const Views = {
         const nameInput = createFormInput('Category Name *', 'text', 'e.g., Upper Body', category?.name || '');
         content.appendChild(nameInput.group);
         
+        // Random selection checkbox
+        const randomCheckbox = document.createElement('div');
+        randomCheckbox.style.marginBottom = 'var(--spacing-lg)';
+        randomCheckbox.style.padding = 'var(--spacing-md)';
+        randomCheckbox.style.background = 'var(--color-bg-card)';
+        randomCheckbox.style.borderRadius = 'var(--border-radius)';
+        randomCheckbox.style.border = '2px solid var(--color-bg-tertiary)';
+        
+        const randomLabel = document.createElement('label');
+        randomLabel.style.display = 'flex';
+        randomLabel.style.alignItems = 'center';
+        randomLabel.style.gap = '12px';
+        randomLabel.style.cursor = 'pointer';
+        
+        const randomInput = document.createElement('input');
+        randomInput.type = 'checkbox';
+        randomInput.checked = category?.isRandom !== false; // Default to true
+        randomInput.style.width = '24px';
+        randomInput.style.height = '24px';
+        randomInput.style.cursor = 'pointer';
+        
+        const randomText = document.createElement('div');
+        randomText.style.flex = '1';
+        
+        const randomTitle = document.createElement('div');
+        randomTitle.style.fontWeight = '700';
+        randomTitle.style.fontSize = '16px';
+        randomTitle.textContent = 'Random Exercise Selection';
+        
+        const randomDesc = document.createElement('div');
+        randomDesc.style.fontSize = '13px';
+        randomDesc.style.color = 'var(--color-text-tertiary)';
+        randomDesc.style.marginTop = '4px';
+        randomDesc.textContent = 'If checked, exercises rotate automatically. If unchecked, you choose manually each workout.';
+        
+        randomText.appendChild(randomTitle);
+        randomText.appendChild(randomDesc);
+        randomLabel.appendChild(randomInput);
+        randomLabel.appendChild(randomText);
+        randomCheckbox.appendChild(randomLabel);
+        content.appendChild(randomCheckbox);
+        
+        // Show/hide rotation settings based on random checkbox
+        const updateRotationVisibility = () => {
+            rotationPicker.container.style.display = randomInput.checked ? 'block' : 'none';
+            rotationDesc.style.display = randomInput.checked ? 'block' : 'none';
+            exercisesPicker.container.style.display = randomInput.checked ? 'block' : 'none';
+            exercisesDesc.style.display = randomInput.checked ? 'block' : 'none';
+        };
+        
+        randomInput.addEventListener('change', updateRotationVisibility);
+        
         // Rotation frequency
         const rotationPicker = createNumberPicker(
             'Rotation Frequency',
@@ -1493,6 +1749,9 @@ const Views = {
         exercisesDesc.textContent = 'How many exercises to show in each workout';
         content.appendChild(exercisesDesc);
         
+        // Initial visibility
+        updateRotationVisibility();
+        
         // Color picker
         const colorPicker = createColorPicker(category?.color || '#4CAF50', null);
         content.appendChild(colorPicker.container);
@@ -1508,6 +1767,7 @@ const Views = {
             
             const categoryData = {
                 name: name,
+                isRandom: randomInput.checked,
                 rotationFrequency: rotationPicker.getValue(),
                 exercisesPerWorkout: exercisesPicker.getValue(),
                 color: colorPicker.getValue()

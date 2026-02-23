@@ -54,6 +54,18 @@
     --shadow-glow: 0 0 20px rgba(0, 179, 89, 0.3);
 }
 
+/* Light theme button text overrides */
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-warning {
+    color: #ffffff;
+}
+
+[data-theme="light"] .btn-secondary,
+[data-theme="light"] .btn-danger,
+[data-theme="light"] .btn-purple {
+    color: #ffffff;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -887,5 +899,33 @@ textarea.form-input {
     to {
         transform: translateX(-50%) translateY(0);
         opacity: 1;
+    }
+}
+
+/* Slide down animation for completed exercises */
+@keyframes slideDownFade {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0.5;
+        transform: translateY(20px);
+    }
+}
+
+.exercise-completed-animation {
+    animation: slideDownFade 0.5s ease-out forwards;
+}
+
+/* Pulse animation for deload banner */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.02);
+        opacity: 0.95;
     }
 }
