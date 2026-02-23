@@ -91,117 +91,9 @@ const router = {
 
 // App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 17;
+const APP_BUILD = 14;
 
 // Check for updates from server
-async function checkForUpdates() {
-    try {
-        // Only check if online
-        if (!navigator.onLine) return;
-        
-        // Fetch the current app.js to see what version is on server
-        const response = await fetch('app.js?' + Date.now(), { cache: 'no-cache' });
-        const text = await response.text();
-        
-        // Extract version from fetched file
-        const versionMatch = text.match(/const APP_VERSION = '(.+?)'/);
-        const buildMatch = text.match(/const APP_BUILD = (\d+)/);
-        
-        if (versionMatch && buildMatch) {
-            const serverVersion = versionMatch[1];
-            const serverBuild = parseInt(buildMatch[1]);
-            
-            // Compare with current version
-            if (serverBuild > APP_BUILD) {
-                console.log(`Update available! Current: Build ${APP_BUILD}, Server: Build ${serverBuild}`);
-                showUpdateNotification(serverVersion, serverBuild);
-            } else {
-                console.log('App is up to date');
-            }
-        }
-    } catch (error) {
-        console.log('Could not check for updates:', error.message);
-    }
-}
-
-// Show update notification
-function showUpdateNotification(newVersion, newBuild) {
-    const notification = document.createElement('div');
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.left = '50%';
-    notification.style.transform = 'translateX(-50%)';
-    notification.style.background = 'linear-gradient(135deg, var(--color-accent-warning), var(--color-accent-danger))';
-    notification.style.color = '#fff';
-    notification.style.padding = '16px 24px';
-    notification.style.borderRadius = 'var(--border-radius)';
-    notification.style.boxShadow = 'var(--shadow-lg)';
-    notification.style.zIndex = '10000';
-    notification.style.maxWidth = '90%';
-    notification.style.textAlign = 'center';
-    notification.style.fontWeight = '600';
-    notification.style.animation = 'slideDown 0.3s ease';
-    
-    const updateNowBtn = document.createElement('button');
-    updateNowBtn.textContent = 'Update Now';
-    updateNowBtn.style.background = '#fff';
-    updateNowBtn.style.color = '#000';
-    updateNowBtn.style.border = 'none';
-    updateNowBtn.style.padding = '8px 20px';
-    updateNowBtn.style.borderRadius = '8px';
-    updateNowBtn.style.fontWeight = '700';
-    updateNowBtn.style.cursor = 'pointer';
-    updateNowBtn.style.marginRight = '8px';
-    updateNowBtn.onclick = async () => {
-        // Unregister service worker and force reload
-        if ('serviceWorker' in navigator) {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (const registration of registrations) {
-                await registration.unregister();
-            }
-        }
-        // Clear all caches
-        if ('caches' in window) {
-            const cacheNames = await caches.keys();
-            for (const cacheName of cacheNames) {
-                await caches.delete(cacheName);
-            }
-        }
-        
-        // Force complete cache bypass with URL parameter
-        const url = new URL(window.location);
-        url.searchParams.set('cachebust', Date.now());
-        window.location.href = url.toString();
-    };
-    
-    const laterBtn = document.createElement('button');
-    laterBtn.textContent = 'Later';
-    laterBtn.style.background = 'rgba(255,255,255,0.2)';
-    laterBtn.style.color = '#fff';
-    laterBtn.style.border = 'none';
-    laterBtn.style.padding = '8px 20px';
-    laterBtn.style.borderRadius = '8px';
-    laterBtn.style.fontWeight = '700';
-    laterBtn.style.cursor = 'pointer';
-    laterBtn.onclick = () => notification.remove();
-    
-    notification.innerHTML = `
-        <div style="font-size: 16px; margin-bottom: 8px;">🎉 Update Available!</div>
-        <div style="font-size: 13px; margin-bottom: 12px;">Version ${newVersion} Build ${newBuild} is ready</div>
-    `;
-    notification.appendChild(updateNowBtn);
-    notification.appendChild(laterBtn);
-    
-    document.body.appendChild(notification);
-    
-    // Auto-remove after 30 seconds if not clicked
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 30000);
-}
-
 // App Initialization
 async function initApp() {
     try {
@@ -239,8 +131,6 @@ async function initApp() {
         
         console.log('FitTrack initialized successfully');
         
-        // Check for updates after app loads (don't block startup)
-        setTimeout(() => checkForUpdates(), 2000);
         
     } catch (error) {
         console.error('Failed to initialize app:', error);
