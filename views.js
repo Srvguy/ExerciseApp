@@ -388,7 +388,12 @@ const Views = {
                 const progressionThreshold = exercise.progressionThreshold || 3;
                 const progressionIncrement = exercise.progressionIncrement || 5;
                 const isTimedExercise = exercise.timerSeconds > 0;
-                const consecutiveCount = countConsecutiveCompletions(history, exercise.weight);
+                
+                // Only count progression if exercise has been used (lastUsedDate > 0)
+                // This prevents orphaned history entries from showing incorrect counts
+                const hasBeenUsed = exercise.lastUsedDate && exercise.lastUsedDate > 0;
+                const consecutiveCount = hasBeenUsed ? countConsecutiveCompletions(history, exercise.weight) : 0;
+                
                 const suggestion = calculateProgression(
                     history, 
                     exercise.weight, 
