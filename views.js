@@ -15,6 +15,7 @@ const Views = {
         // Check if this should be a deload week
         const isDeload = await shouldDeload();
         if (isDeload) {
+            const deloadPercent = await db.getSetting('deloadPercent', 50);
             const deloadBanner = document.createElement('div');
             deloadBanner.style.padding = '20px';
             deloadBanner.style.background = 'linear-gradient(135deg, rgba(255, 170, 0, 0.15), rgba(255, 140, 0, 0.15))';
@@ -40,7 +41,7 @@ const Views = {
             deloadText.style.fontSize = '15px';
             deloadText.style.color = 'var(--color-text-secondary)';
             deloadText.style.fontWeight = '600';
-            deloadText.textContent = 'All weights will be reduced by 50% for recovery';
+            deloadText.textContent = `All weights will be reduced by ${deloadPercent}% for recovery`;
             
             deloadBanner.appendChild(deloadIcon);
             deloadBanner.appendChild(deloadTitle);
@@ -481,7 +482,8 @@ const Views = {
         const isDeload = await shouldDeload();
         
         if (isDeload) {
-            exercises = applyDeload(exercises);
+            const deloadPercent = await db.getSetting('deloadPercent', 50);
+            exercises = await applyDeload(exercises, deloadPercent);
             
             // Show deload notification banner
             const deloadAlert = document.createElement('div');
@@ -507,7 +509,7 @@ const Views = {
             deloadSubtext.style.fontSize = '14px';
             deloadSubtext.style.color = 'var(--color-text-secondary)';
             deloadSubtext.style.marginTop = '4px';
-            deloadSubtext.textContent = 'All weights reduced by 50% for recovery';
+            deloadSubtext.textContent = `All weights reduced by ${deloadPercent}% for recovery`;
             
             deloadAlert.appendChild(deloadIcon);
             deloadAlert.appendChild(deloadText);
@@ -1556,10 +1558,31 @@ const Views = {
             deloadContent.appendChild(statusText);
         }
         
+        // Deload percentage picker
+        const currentDeloadPercent = await db.getSetting('deloadPercent', 50);
+        const deloadPercentPicker = createNumberPicker(
+            'Deload Percentage',
+            10,
+            90,
+            currentDeloadPercent,
+            null
+        );
+        deloadContent.appendChild(deloadPercentPicker.container);
+        
+        const percentDesc = document.createElement('div');
+        percentDesc.style.fontSize = '13px';
+        percentDesc.style.color = 'var(--color-text-secondary)';
+        percentDesc.style.marginTop = '-8px';
+        percentDesc.style.marginBottom = 'var(--spacing-md)';
+        percentDesc.textContent = 'How much to reduce weights during deload (50% is typical)';
+        deloadContent.appendChild(percentDesc);
+        
         // Save button
         const saveDeloadBtn = createButton('SAVE DELOAD SETTINGS', 'btn-secondary', async () => {
             const weeks = parseInt(deloadInput.input.value) || 0;
+            const percent = deloadPercentPicker.getValue();
             await db.setSetting('deloadWeeks', weeks);
+            await db.setSetting('deloadPercent', percent);
             
             if (weeks > 0 && lastDeload === 0) {
                 await db.setSetting('lastDeloadDate', Date.now());

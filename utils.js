@@ -464,15 +464,17 @@ async function shouldDeload() {
     return weeks >= deloadFrequency;
 }
 
-// Apply deload to exercises (reduce weight by 50%)
-function applyDeload(exercises) {
+// Apply deload to exercises (reduce weight by specified percentage)
+async function applyDeload(exercises, percentage = 50) {
+    const deloadPercent = percentage / 100; // Convert to decimal (50 -> 0.5)
     return exercises.map(ex => {
         const deloaded = { ...ex };
         if (deloaded.weight && !deloaded.weight.toLowerCase().includes('bodyweight')) {
             const currentWeight = parseWeight(deloaded.weight);
             if (currentWeight > 0) {
                 const unit = deloaded.weight.toLowerCase().includes('kg') ? ' kg' : ' lbs';
-                deloaded.weight = `${currentWeight * 0.5}${unit}`;
+                const reducedWeight = currentWeight * (1 - deloadPercent);
+                deloaded.weight = `${reducedWeight}${unit}`;
                 deloaded.originalWeight = ex.weight; // Track original for display
             }
         }
