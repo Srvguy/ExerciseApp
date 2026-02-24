@@ -80,7 +80,7 @@ const Views = {
         utilityContainer.className = 'flex gap-sm mt-lg';
         utilityContainer.style.flexWrap = 'wrap';
         
-        const manageBtn = createButton('MANAGE', 'btn-secondary', () => {
+        const manageBtn = createButton('MANAGE EXERCISES', 'btn-secondary', () => {
             router.navigate('manage-exercises');
         });
         manageBtn.style.flex = '1';
@@ -92,7 +92,7 @@ const Views = {
         historyBtn.style.flex = '1';
         historyBtn.style.minWidth = '120px';
         
-        const setupBtn = createButton('SETUP', 'btn-secondary', () => {
+        const setupBtn = createButton('SETUP CATEGORIES', 'btn-secondary', () => {
             router.navigate('setup');
         });
         setupBtn.style.flex = '1';
@@ -767,6 +767,46 @@ const Views = {
                     expandableSection.appendChild(img);
                 }
                 
+                // Video embed
+                if (exercise.videoLink) {
+                    const videoContainer = document.createElement('div');
+                    videoContainer.style.position = 'relative';
+                    videoContainer.style.paddingBottom = '56.25%'; // 16:9 aspect ratio
+                    videoContainer.style.height = '0';
+                    videoContainer.style.overflow = 'hidden';
+                    videoContainer.style.maxWidth = '100%';
+                    videoContainer.style.marginBottom = 'var(--spacing-md)';
+                    videoContainer.style.borderRadius = 'var(--border-radius-sm)';
+                    videoContainer.style.background = '#000';
+                    
+                    // Convert YouTube URL to embed format
+                    let embedUrl = exercise.videoLink;
+                    if (embedUrl.includes('youtube.com/watch')) {
+                        const videoId = new URL(embedUrl).searchParams.get('v');
+                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                    } else if (embedUrl.includes('youtu.be/')) {
+                        const videoId = embedUrl.split('youtu.be/')[1].split('?')[0];
+                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                    } else if (embedUrl.includes('vimeo.com/')) {
+                        const videoId = embedUrl.split('vimeo.com/')[1].split('?')[0];
+                        embedUrl = `https://player.vimeo.com/video/${videoId}`;
+                    }
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.src = embedUrl;
+                    iframe.style.position = 'absolute';
+                    iframe.style.top = '0';
+                    iframe.style.left = '0';
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = 'none';
+                    iframe.setAttribute('allowfullscreen', '');
+                    iframe.setAttribute('loading', 'lazy');
+                    
+                    videoContainer.appendChild(iframe);
+                    expandableSection.appendChild(videoContainer);
+                }
+                
                 // Workout notes input
                 const notesLabel = document.createElement('label');
                 notesLabel.className = 'form-label';
@@ -1235,6 +1275,17 @@ const Views = {
         const notesInput = createFormInput('Notes', 'textarea', 'Notes about this exercise', exercise?.notes || '');
         content.appendChild(notesInput.group);
         
+        // Video link
+        const videoLinkInput = createFormInput('Video Link', 'text', 'YouTube or other video URL', exercise?.videoLink || '');
+        const videoDesc = document.createElement('div');
+        videoDesc.style.fontSize = '12px';
+        videoDesc.style.color = 'var(--color-text-tertiary)';
+        videoDesc.style.marginTop = '-8px';
+        videoDesc.style.marginBottom = 'var(--spacing-md)';
+        videoDesc.textContent = 'Optional: Link to form demo video (YouTube, Vimeo, etc.)';
+        content.appendChild(videoLinkInput.group);
+        content.appendChild(videoDesc);
+        
         // Categories
         const categoriesLabel = document.createElement('label');
         categoriesLabel.className = 'form-label';
@@ -1347,6 +1398,7 @@ const Views = {
                 reps: repsInput.input.value.trim(),
                 weight: weightInput.input.value.trim(),
                 notes: notesInput.input.value.trim(),
+                videoLink: videoLinkInput.input.value.trim(),
                 timerSeconds: parseInt(timerInput.input.value) || 0,
                 restTimerSeconds: parseInt(restTimerInput.input.value) || 0,
                 progressionThreshold: parseInt(progressionInput.input.value) || 3,
