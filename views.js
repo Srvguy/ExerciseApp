@@ -139,6 +139,40 @@ const Views = {
         counter.textContent = '0 exercises selected';
         content.appendChild(counter);
         
+        // Action buttons (at top for easy access)
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'flex gap-sm';
+        actionsContainer.style.flexWrap = 'wrap';
+        actionsContainer.style.marginBottom = 'var(--spacing-md)';
+        
+        const selectAllBtn = createButton('SELECT ALL', 'btn-secondary', () => {
+            filteredExercises.forEach(e => selectedIds.add(e.id));
+            counter.textContent = `${selectedIds.size} exercise${selectedIds.size !== 1 ? 's' : ''} selected`;
+            renderExerciseList();
+        });
+        selectAllBtn.style.flex = '1';
+        
+        const clearAllBtn = createButton('CLEAR ALL', 'btn-warning', () => {
+            selectedIds.clear();
+            counter.textContent = '0 exercises selected';
+            renderExerciseList();
+        });
+        clearAllBtn.style.flex = '1';
+        
+        content.appendChild(actionsContainer);
+        
+        const startBtn = createButton('START WORKOUT', 'btn-large btn-primary', () => {
+            if (selectedIds.size === 0) {
+                showToast('Please select at least one exercise', 'warning');
+                return;
+            }
+            router.navigate('workout', { 
+                categoryId: null, 
+                customExerciseIds: Array.from(selectedIds) 
+            });
+        });
+        content.appendChild(startBtn);
+        
         // Search bar
         let allExercises = await db.getAllExercises();
         let filteredExercises = [...allExercises];
@@ -235,41 +269,6 @@ const Views = {
         
         await renderExerciseList();
         
-        // Action buttons
-        const actionsContainer = document.createElement('div');
-        actionsContainer.className = 'flex gap-sm';
-        actionsContainer.style.flexWrap = 'wrap';
-        
-        const selectAllBtn = createButton('SELECT ALL', 'btn-secondary', () => {
-            filteredExercises.forEach(e => selectedIds.add(e.id));
-            counter.textContent = `${selectedIds.size} exercise${selectedIds.size !== 1 ? 's' : ''} selected`;
-            renderExerciseList();
-        });
-        selectAllBtn.style.flex = '1';
-        
-        const clearAllBtn = createButton('CLEAR ALL', 'btn-warning', () => {
-            selectedIds.clear();
-            counter.textContent = '0 exercises selected';
-            renderExerciseList();
-        });
-        clearAllBtn.style.flex = '1';
-        
-        const startBtn = createButton('START WORKOUT', 'btn-large btn-primary', () => {
-            if (selectedIds.size === 0) {
-                showToast('Please select at least one exercise', 'warning');
-                return;
-            }
-            router.navigate('workout', { 
-                categoryId: null, 
-                customExerciseIds: Array.from(selectedIds) 
-            });
-        });
-        
-        actionsContainer.appendChild(selectAllBtn);
-        actionsContainer.appendChild(clearAllBtn);
-        content.appendChild(actionsContainer);
-        content.appendChild(startBtn);
-        
         container.appendChild(content);
     },
 
@@ -307,6 +306,42 @@ const Views = {
         counter.style.color = 'var(--color-accent-primary)';
         counter.textContent = '0 exercises selected';
         content.appendChild(counter);
+        
+        // Action buttons (at top for easy access)
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'flex gap-sm';
+        actionsContainer.style.flexWrap = 'wrap';
+        actionsContainer.style.marginBottom = 'var(--spacing-md)';
+        
+        const selectAllBtn = createButton('SELECT ALL', 'btn-secondary', async () => {
+            allExercises.forEach(e => selectedIds.add(e.id));
+            counter.textContent = `${selectedIds.size} exercise${selectedIds.size !== 1 ? 's' : ''} selected`;
+            await renderExerciseList();
+        });
+        selectAllBtn.style.flex = '1';
+        
+        const clearAllBtn = createButton('CLEAR ALL', 'btn-warning', async () => {
+            selectedIds.clear();
+            counter.textContent = '0 exercises selected';
+            await renderExerciseList();
+        });
+        clearAllBtn.style.flex = '1';
+        
+        actionsContainer.appendChild(selectAllBtn);
+        actionsContainer.appendChild(clearAllBtn);
+        content.appendChild(actionsContainer);
+        
+        const startBtn = createButton('START WORKOUT', 'btn-large btn-primary', () => {
+            if (selectedIds.size === 0) {
+                showToast('Please select at least one exercise', 'warning');
+                return;
+            }
+            router.navigate('workout', { 
+                categoryId: categoryId,
+                customExerciseIds: Array.from(selectedIds)
+            });
+        });
+        content.appendChild(startBtn);
         
         // Exercise list
         const listContainer = document.createElement('div');
@@ -393,43 +428,6 @@ const Views = {
         };
         
         await renderExerciseList();
-        
-        // Action buttons
-        const actionsContainer = document.createElement('div');
-        actionsContainer.className = 'flex gap-sm';
-        actionsContainer.style.flexWrap = 'wrap';
-        actionsContainer.style.marginTop = 'var(--spacing-md)';
-        
-        const selectAllBtn = createButton('SELECT ALL', 'btn-secondary', async () => {
-            allExercises.forEach(e => selectedIds.add(e.id));
-            counter.textContent = `${selectedIds.size} exercise${selectedIds.size !== 1 ? 's' : ''} selected`;
-            await renderExerciseList();
-        });
-        selectAllBtn.style.flex = '1';
-        
-        const clearAllBtn = createButton('CLEAR ALL', 'btn-warning', async () => {
-            selectedIds.clear();
-            counter.textContent = '0 exercises selected';
-            await renderExerciseList();
-        });
-        clearAllBtn.style.flex = '1';
-        
-        actionsContainer.appendChild(selectAllBtn);
-        actionsContainer.appendChild(clearAllBtn);
-        content.appendChild(actionsContainer);
-        
-        const startBtn = createButton('START WORKOUT', 'btn-large btn-primary', () => {
-            if (selectedIds.size === 0) {
-                showToast('Please select at least one exercise', 'warning');
-                return;
-            }
-            router.navigate('workout', { 
-                categoryId: categoryId,
-                customExerciseIds: Array.from(selectedIds)
-            });
-        });
-        startBtn.style.marginTop = 'var(--spacing-md)';
-        content.appendChild(startBtn);
         
         container.appendChild(content);
     },
