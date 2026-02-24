@@ -32,19 +32,24 @@ const router = {
         const view = this.currentView;
         const params = this.currentParams || {};
         
-        console.log(`Rendering view: ${view}`, params);
+        console.log(`Rendering view: "${view}" (type: ${typeof view})`, params);
+        console.log(`View length: ${view ? view.length : 'null'}, chars:`, view ? view.split('').map(c => c.charCodeAt(0)) : 'none');
         
         // Scroll to top
         window.scrollTo(0, 0);
         
         try {
             // Render appropriate view
+            console.log('About to enter switch with view:', view);
             switch(view) {
                 case 'home':
                     await Views.renderHome();
                     break;
                 case 'custom-workout':
                     await Views.renderCustomWorkout();
+                    break;
+                case 'selectExercises':
+                    await Views.renderSelectExercises(params);
                     break;
                 case 'workout':
                     await Views.renderWorkout(params);
@@ -91,7 +96,7 @@ const router = {
 
 // App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 19;
+const APP_BUILD = 14;
 
 // Check for updates from server
 // App Initialization
