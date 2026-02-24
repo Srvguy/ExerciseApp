@@ -56,12 +56,17 @@ const Views = {
         
         // Category Buttons
         const categories = await db.getAllCategories();
+        console.log('Categories loaded:', categories.length);
         for (const category of categories) {
+            console.log(`Category: ${category.name}, isRandom: ${category.isRandom}`);
             const btn = createButton(category.name, 'btn-large', () => {
+                console.log(`Clicked category: ${category.name}, isRandom: ${category.isRandom}`);
                 // Check if random selection or manual selection
                 if (category.isRandom === false) {
+                    console.log('Navigating to selectExercises with categoryId:', category.id);
                     router.navigate('selectExercises', { categoryId: category.id });
                 } else {
+                    console.log('Navigating to workout with categoryId:', category.id);
                     router.navigate('workout', { categoryId: category.id });
                 }
             });
@@ -269,20 +274,27 @@ const Views = {
 
     // Select Exercises Screen (for non-random categories)
     async renderSelectExercises(params) {
+        console.log('renderSelectExercises called with params:', params);
         const { categoryId } = params;
+        console.log('categoryId extracted:', categoryId);
         const category = await db.getCategory(categoryId);
+        console.log('category loaded:', category);
         
         const container = document.getElementById('app');
         container.innerHTML = '';
+        console.log('container cleared');
         
         const header = createHeader(`SELECT EXERCISES - ${category.name}`, true);
         container.appendChild(header);
+        console.log('header added');
         
         const content = document.createElement('div');
         content.className = 'content-container';
         
         // Get all exercises in this category
+        console.log('About to call getCategoryExercises with:', categoryId);
         const allExercises = await db.getCategoryExercises(categoryId);
+        console.log('allExercises loaded:', allExercises.length);
         const selectedIds = new Set();
         
         // Counter
