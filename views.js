@@ -805,7 +805,7 @@ const Views = {
         buttonsContainer.className = 'flex flex-column gap-md mt-lg';
         
         // Add random exercise button (only for category workouts)
-        if (!isCustom) {
+        if (categoryId) {
             const addRandomBtn = createButton('➕ ADD RANDOM EXERCISE', 'btn-secondary', async () => {
                 const category = await db.getCategory(categoryId);
                 const allExercises = await db.getCategoryExercises(categoryId);
@@ -905,7 +905,7 @@ const Views = {
             }
             
             // Update workoutsSinceLastUse for non-used exercises in category
-            if (!isCustom) {
+            if (categoryId) {
                 const allExercises = await db.getCategoryExercises(categoryId);
                 const usedIds = new Set(exercises.map(e => e.id));
                 for (const ex of allExercises) {
