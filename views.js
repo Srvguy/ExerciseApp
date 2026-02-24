@@ -436,7 +436,6 @@ const Views = {
     // Workout Screen
     async renderWorkout(params) {
         const { categoryId, customExerciseIds } = params;
-        const isCustom = !categoryId;
         
         const container = document.getElementById('app');
         container.innerHTML = '';
@@ -444,14 +443,21 @@ const Views = {
         let categoryName = 'Custom';
         let exercises = [];
         
-        if (isCustom) {
-            // Load custom exercises
+        // Check if custom exercise IDs were provided (from custom workout OR manual category selection)
+        if (customExerciseIds && customExerciseIds.length > 0) {
+            // Load the specific exercises chosen by user
             for (const id of customExerciseIds) {
                 const exercise = await db.getExercise(id);
                 if (exercise) exercises.push(exercise);
             }
-        } else {
-            // Load category exercises with rotation
+            
+            // If there's a category, use its name
+            if (categoryId) {
+                const category = await db.getCategory(categoryId);
+                categoryName = category.name;
+            }
+        } else if (categoryId) {
+            // Load category exercises with automatic rotation
             const category = await db.getCategory(categoryId);
             categoryName = category.name;
             const allExercises = await db.getCategoryExercises(categoryId);
@@ -460,6 +466,9 @@ const Views = {
                 category.rotationFrequency,
                 category.exercisesPerWorkout
             );
+        } else {
+            // No exercises selected - shouldn't happen
+            console.error('No categoryId or customExerciseIds provided to workout');
         }
         
         const header = createHeader(`${categoryName.toUpperCase()} WORKOUT`, true);
