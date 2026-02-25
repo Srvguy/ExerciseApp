@@ -71,7 +71,13 @@ function formatDate(timestamp) {
     if (!timestamp) return 'Never';
     const date = new Date(timestamp);
     const now = new Date();
-    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    // Set both dates to start of day (midnight) for accurate day comparison
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Calculate difference in calendar days
+    const diffDays = Math.floor((nowDay - dateDay) / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
@@ -498,6 +504,8 @@ async function findPreviousWorkoutForExercise(exerciseName, currentDate, db) {
 // Export workout history to professional PDF
 async function exportHistoryToPDF(sessions, db) {
     try {
+        console.log('Starting PDF export with', sessions.length, 'sessions');
+        
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
@@ -595,7 +603,13 @@ async function exportHistoryToPDF(sessions, db) {
             }
             
             // Exercise records
+            console.log('Getting records for session', session.id);
+            if (!session.id) {
+                console.error('Session missing ID:', session);
+                continue;
+            }
             const records = await db.getWorkoutExerciseRecords(session.id);
+            console.log('Got', records.length, 'records');
             doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
             
@@ -621,8 +635,24 @@ async function exportHistoryToPDF(sessions, db) {
                 
                 // Exercise details
                 const details = [];
-                if (record.sets && record.reps) details.push(`${record.sets}×${record.reps}`);
-                if (record.weight) details.push(record.weight);
+                
+                // If it's a timed exercise and completed, show total time
+                if (record.timerSeconds && record.timerSeconds > 0 && record.completed) {
+                    const sets = parseInt(record.sets) || 1;
+                    const totalSeconds = sets * record.timerSeconds;
+                    const minutes = Math.floor(totalSeconds / 60);
+                    const seconds = totalSeconds % 60;
+                    if (minutes > 0) {
+                        details.push(`${sets} × ${record.timerSeconds}s = ${minutes}m ${seconds}s`);
+                    } else {
+                        details.push(`${sets} × ${record.timerSeconds}s = ${totalSeconds}s`);
+                    }
+                } else {
+                    // Regular weight/reps exercise
+                    if (record.sets && record.reps) details.push(`${record.sets}×${record.reps}`);
+                    if (record.weight) details.push(record.weight);
+                }
+                
                 if (details.length > 0) {
                     doc.setTextColor(100, 100, 100);
                     doc.text(details.join(' | '), margin + 80, y);
