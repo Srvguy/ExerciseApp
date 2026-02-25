@@ -149,8 +149,24 @@ Views.renderHistory = async function() {
                 detailsEl.style.fontSize = '13px';
                 detailsEl.style.color = 'var(--color-text-tertiary)';
                 const detailsParts = [];
-                if (record.sets) detailsParts.push(`${record.sets}×${record.reps}`);
-                if (record.weight) detailsParts.push(record.weight);
+                
+                // If it's a timed exercise, show total time
+                if (record.timerSeconds && record.timerSeconds > 0) {
+                    const sets = parseInt(record.sets) || 1;
+                    const totalSeconds = sets * record.timerSeconds;
+                    const minutes = Math.floor(totalSeconds / 60);
+                    const seconds = totalSeconds % 60;
+                    if (minutes > 0) {
+                        detailsParts.push(`${sets} × ${record.timerSeconds}s = ${minutes}m ${seconds}s`);
+                    } else {
+                        detailsParts.push(`${sets} × ${record.timerSeconds}s = ${totalSeconds}s`);
+                    }
+                } else {
+                    // Regular weight/reps exercise
+                    if (record.sets && record.reps) detailsParts.push(`${record.sets}×${record.reps}`);
+                    if (record.weight) detailsParts.push(record.weight);
+                }
+                
                 detailsEl.textContent = detailsParts.join(' | ');
                 
                 exerciseEl.appendChild(nameEl);
