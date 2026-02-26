@@ -96,7 +96,7 @@ const router = {
 
 // App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 24;
+const APP_BUILD = 25;
 
 // Check for updates from server
 // App Initialization
