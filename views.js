@@ -49,6 +49,83 @@ const Views = {
             content.appendChild(deloadBanner);
         }
         
+        // Check if backup reminder needed (every 14 days)
+        const lastBackup = await db.getSetting('lastBackupDate', 0);
+        const daysSinceBackup = lastBackup ? Math.floor((Date.now() - lastBackup) / (1000 * 60 * 60 * 24)) : 999;
+        
+        if (daysSinceBackup >= 14) {
+            const backupBanner = document.createElement('div');
+            backupBanner.style.padding = '16px';
+            backupBanner.style.background = 'linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(33, 150, 243, 0.15))';
+            backupBanner.style.border = '2px solid var(--color-accent-secondary)';
+            backupBanner.style.borderRadius = 'var(--border-radius)';
+            backupBanner.style.marginBottom = 'var(--spacing-lg)';
+            backupBanner.style.textAlign = 'center';
+            
+            const backupIcon = document.createElement('div');
+            backupIcon.style.fontSize = '32px';
+            backupIcon.style.marginBottom = '8px';
+            backupIcon.textContent = '💾';
+            
+            const backupTitle = document.createElement('div');
+            backupTitle.style.fontSize = '18px';
+            backupTitle.style.fontWeight = '700';
+            backupTitle.style.color = 'var(--color-accent-secondary)';
+            backupTitle.style.marginBottom = '8px';
+            backupTitle.textContent = lastBackup ? `Backup Reminder (${daysSinceBackup} days ago)` : 'Time to Backup Your Data';
+            
+            const backupText = document.createElement('div');
+            backupText.style.fontSize = '14px';
+            backupText.style.color = 'var(--color-text-secondary)';
+            backupText.style.marginBottom = '12px';
+            backupText.textContent = 'Protect your workout history with a backup';
+            
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.style.display = 'flex';
+            buttonsContainer.style.gap = '8px';
+            buttonsContainer.style.justifyContent = 'center';
+            buttonsContainer.style.flexWrap = 'wrap';
+            
+            const backupNowBtn = createButton('💾 BACKUP NOW', 'btn-primary', async () => {
+                try {
+                    const data = await db.exportData();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `fittrack-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    await db.setSetting('lastBackupDate', Date.now());
+                    showToast('Backup downloaded successfully!', 'success');
+                    router.navigate('home'); // Refresh to hide banner
+                } catch (error) {
+                    showToast('Backup failed: ' + error.message, 'error');
+                }
+            });
+            backupNowBtn.style.flex = '1';
+            backupNowBtn.style.minWidth = '120px';
+            
+            const remindLaterBtn = createButton('Remind in 7 Days', 'btn-secondary', async () => {
+                const reminderDate = Date.now() - (7 * 24 * 60 * 60 * 1000); // Set to 7 days ago
+                await db.setSetting('lastBackupDate', reminderDate);
+                showToast('Will remind you in 7 days', 'success');
+                router.navigate('home'); // Refresh to hide banner
+            });
+            remindLaterBtn.style.flex = '1';
+            remindLaterBtn.style.minWidth = '120px';
+            
+            buttonsContainer.appendChild(backupNowBtn);
+            buttonsContainer.appendChild(remindLaterBtn);
+            
+            backupBanner.appendChild(backupIcon);
+            backupBanner.appendChild(backupTitle);
+            backupBanner.appendChild(backupText);
+            backupBanner.appendChild(buttonsContainer);
+            content.appendChild(backupBanner);
+        }
+        
         // Custom Workout Button
         const customBtn = createButton('CUSTOM WORKOUT', 'btn-large btn-purple', () => {
             router.navigate('custom-workout');

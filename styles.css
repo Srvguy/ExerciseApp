@@ -138,12 +138,20 @@ h4 { font-size: clamp(18px, 4vw, 24px); }
     background: transparent;
     border: none;
     color: var(--color-accent-primary);
-    font-size: 22px;
-    padding: 4px;
+    font-size: 32px;
+    padding: 8px 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     line-height: 1;
-    min-width: 36px;
+    min-width: 48px;
+    font-weight: bold;
+}
+
+.back-button:hover {
+    background: var(--color-accent-primary);
+    color: var(--color-bg-primary);
+    box-shadow: var(--shadow-glow);
+    transform: translateX(-4px);
 }
 
 /* Desktop overrides */
@@ -160,38 +168,14 @@ h4 { font-size: clamp(18px, 4vw, 24px); }
     }
     
     .back-button {
-        font-size: 28px;
-        padding: 4px 8px;
-    }
-    
-    .back-button:hover {
-        transform: translateX(-4px);
+        font-size: 36px;
+        padding: 8px 16px;
     }
 }
 
 @keyframes titlePulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.85; }
-}
-    50% { opacity: 0.85; }
-}
-
-.back-button {
-    background: transparent;
-    border: none;
-    color: var(--color-accent-primary);
-    font-size: 28px;
-    padding: 4px 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    line-height: 1;
-}
-
-.back-button:hover {
-    background: var(--color-accent-primary);
-    color: var(--color-bg-primary);
-    box-shadow: var(--shadow-glow);
-    transform: translateY(-2px);
 }
 
 /* Content Container */

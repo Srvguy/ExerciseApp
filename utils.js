@@ -134,27 +134,64 @@ function selectExercisesForWorkout(exercises, rotationFrequency, count) {
         return shuffleArray([...exercises]);
     }
     
-    // Sort by workoutsSinceLastUse (desc) then lastUsedDate (asc)
-    const sorted = [...exercises].sort((a, b) => {
-        if (b.workoutsSinceLastUse !== a.workoutsSinceLastUse) {
-            return b.workoutsSinceLastUse - a.workoutsSinceLastUse;
+    // Calculate priority scores for each exercise
+    const scoredExercises = exercises.map(e => {
+        let score = 0;
+        
+        // Primary factor: workouts since last use (exponential weight)
+        // This creates strong preference for neglected exercises
+        score += Math.pow(e.workoutsSinceLastUse + 1, 1.5) * 100;
+        
+        // Secondary factor: overdue exercises get massive boost
+        if (e.workoutsSinceLastUse >= rotationFrequency) {
+            score += 1000;
         }
-        return a.lastUsedDate - b.lastUsedDate;
+        
+        // Tertiary factor: never-used exercises get priority
+        if (e.lastUsedDate === 0) {
+            score += 500;
+        }
+        
+        // Add randomness (±30% variance)
+        const randomFactor = 0.7 + (Math.random() * 0.6);
+        score *= randomFactor;
+        
+        return { exercise: e, score: score };
     });
     
-    // First pass: overdue exercises
-    const overdue = sorted.filter(e => e.workoutsSinceLastUse >= rotationFrequency);
-    const selected = overdue.slice(0, count);
+    // Sort by score (highest first)
+    scoredExercises.sort((a, b) => b.score - a.score);
     
-    if (selected.length >= count) {
-        return shuffleArray(selected);
+    // Use weighted random selection from top candidates
+    const selected = [];
+    const candidatePool = [...scoredExercises];
+    
+    for (let i = 0; i < count && candidatePool.length > 0; i++) {
+        // Consider top 50% of remaining candidates (or minimum 3)
+        const poolSize = Math.max(3, Math.ceil(candidatePool.length * 0.5));
+        const topCandidates = candidatePool.slice(0, poolSize);
+        
+        // Weighted random selection from top candidates
+        const totalScore = topCandidates.reduce((sum, item) => sum + item.score, 0);
+        let randomValue = Math.random() * totalScore;
+        
+        let selectedItem = topCandidates[0];
+        for (const item of topCandidates) {
+            randomValue -= item.score;
+            if (randomValue <= 0) {
+                selectedItem = item;
+                break;
+            }
+        }
+        
+        selected.push(selectedItem.exercise);
+        
+        // Remove selected from pool
+        const index = candidatePool.indexOf(selectedItem);
+        candidatePool.splice(index, 1);
     }
     
-    // Second pass: fill remaining slots
-    const remaining = sorted.filter(e => !selected.includes(e));
-    const needed = count - selected.length;
-    selected.push(...remaining.slice(0, needed));
-    
+    // Final shuffle for variety in exercise order
     return shuffleArray(selected);
 }
 
