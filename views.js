@@ -722,17 +722,18 @@ const Views = {
                 const hasBeenUsed = exercise.lastUsedDate && exercise.lastUsedDate > 0;
                 const consecutiveCount = hasBeenUsed ? countConsecutiveCompletions(history, exercise.weight) : 0;
                 
-                const suggestion = calculateProgression(
+                // Don't calculate progression during deload week
+                const suggestion = !isDeload ? calculateProgression(
                     history, 
                     exercise.weight, 
                     progressionThreshold,
                     isTimedExercise,
                     exercise.timerSeconds,
                     progressionIncrement
-                );
+                ) : null;
                 
-                // Show progression progress
-                if ((exercise.weight && !isTimedExercise) || isTimedExercise) {
+                // Show progression progress (but not during deload week)
+                if (!isDeload && ((exercise.weight && !isTimedExercise) || isTimedExercise)) {
                     const progressInfo = document.createElement('div');
                     progressInfo.style.fontSize = '14px';
                     progressInfo.style.fontWeight = '600';
@@ -750,7 +751,7 @@ const Views = {
                     itemContainer.appendChild(progressInfo);
                 }
                 
-                if (suggestion) {
+                if (suggestion && !isDeload) {
                     const alert = document.createElement('div');
                     alert.className = 'progression-alert';
                     alert.textContent = `💡 Ready to progress! Try ${suggestion}`;
@@ -1009,7 +1010,7 @@ const Views = {
                 
                 const notes = workoutNotes.get(exercise.id) || '';
                 
-                // Add workout record
+                // Add workout record (with deloaded weight if applicable)
                 await db.addWorkoutExerciseRecord({
                     workoutSessionId: sessionId,
                     exerciseName: exercise.name,
@@ -1022,7 +1023,7 @@ const Views = {
                     workoutNotes: notes
                 });
                 
-                // Add to exercise history
+                // Add to exercise history (with deloaded weight if applicable)
                 await db.addExerciseHistory({
                     exerciseId: exercise.id,
                     exerciseName: exercise.name,
@@ -1036,13 +1037,22 @@ const Views = {
                     completed: completed
                 });
                 
-                // Update exercise
+                // Update exercise - use ORIGINAL weight during deload week
                 if (completed) {
                     exercise.lastUsedDate = Date.now();
                     exercise.workoutsSinceLastUse = 0;
-                    exercise.weight = finalWeight; // Save adjusted weight
-                    exercise.timerSeconds = finalTimer; // Save adjusted timer
-                    exercise.restTimerSeconds = finalRestTimer; // Save adjusted rest timer
+                    
+                    // CRITICAL: During deload week, save original weight, not deloaded weight
+                    if (isDeload && exercise.originalWeight) {
+                        // Deload week: save the original weight
+                        exercise.weight = exercise.originalWeight;
+                    } else {
+                        // Normal week: save the adjusted weight
+                        exercise.weight = finalWeight;
+                    }
+                    
+                    exercise.timerSeconds = finalTimer;
+                    exercise.restTimerSeconds = finalRestTimer;
                     await db.updateExercise(exercise);
                 }
             }
