@@ -362,11 +362,17 @@ Views.renderImportExport = async function() {
     content.appendChild(exportDesc);
     
     const exportBtn = createButton('EXPORT TO FILE', 'btn-large btn-primary', async () => {
-        const data = await db.exportData();
-        const date = new Date().toISOString().split('T')[0];
-        const filename = `fittrack_backup_${date}.json`;
-        exportToJSON(data, filename);
-        showToast('Backup exported successfully', 'success');
+        try {
+            const data = await db.exportData();
+            const date = new Date().toISOString().split('T')[0];
+            const filename = `fittrack_backup_${date}.json`;
+            await exportToJSON(data, filename);
+            showToast('Backup saved successfully', 'success');
+        } catch (error) {
+            if (error.message !== 'Export cancelled') {
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        }
     });
     content.appendChild(exportBtn);
     

@@ -343,8 +343,37 @@ function playSound(frequency = 800, duration = 200) {
 }
 
 // Export data to JSON file
-function exportToJSON(data, filename) {
+async function exportToJSON(data, filename) {
     const json = JSON.stringify(data, null, 2);
+    
+    // Check if File System Access API is supported
+    if ('showSaveFilePicker' in window) {
+        try {
+            // Use File System Access API - allows user to choose location
+            const handle = await window.showSaveFilePicker({
+                suggestedName: filename,
+                types: [{
+                    description: 'JSON Files',
+                    accept: { 'application/json': ['.json'] },
+                }],
+            });
+            
+            const writable = await handle.createWritable();
+            await writable.write(json);
+            await writable.close();
+            
+            return; // Success - exit early
+        } catch (error) {
+            // User cancelled or error occurred
+            if (error.name === 'AbortError') {
+                throw new Error('Export cancelled');
+            }
+            // Fall through to legacy method on other errors
+            console.warn('File System Access API failed, using fallback:', error);
+        }
+    }
+    
+    // Fallback: Traditional download method
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
@@ -358,7 +387,34 @@ function exportToJSON(data, filename) {
 }
 
 // Import data from JSON file
-function importFromJSON() {
+async function importFromJSON() {
+    // Check if File System Access API is supported
+    if ('showOpenFilePicker' in window) {
+        try {
+            // Use File System Access API - allows user to browse to any location
+            const [fileHandle] = await window.showOpenFilePicker({
+                types: [{
+                    description: 'JSON Files',
+                    accept: { 'application/json': ['.json'] },
+                }],
+                multiple: false
+            });
+            
+            const file = await fileHandle.getFile();
+            const text = await file.text();
+            const data = JSON.parse(text);
+            return data;
+        } catch (error) {
+            // User cancelled
+            if (error.name === 'AbortError') {
+                throw 'Import cancelled';
+            }
+            // Fall through to legacy method on other errors
+            console.warn('File System Access API failed, using fallback:', error);
+        }
+    }
+    
+    // Fallback: Traditional file input method
     return new Promise((resolve, reject) => {
         const input = document.createElement('input');
         input.type = 'file';

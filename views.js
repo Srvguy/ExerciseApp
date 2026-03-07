@@ -89,19 +89,17 @@ const Views = {
             const backupNowBtn = createButton('💾 BACKUP NOW', 'btn-primary', async () => {
                 try {
                     const data = await db.exportData();
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `fittrack-backup-${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    const date = new Date().toISOString().split('T')[0];
+                    const filename = `fittrack-backup-${date}.json`;
+                    await exportToJSON(data, filename);
                     
                     await db.setSetting('lastBackupDate', Date.now());
-                    showToast('Backup downloaded successfully!', 'success');
+                    showToast('Backup saved successfully!', 'success');
                     router.navigate('home'); // Refresh to hide banner
                 } catch (error) {
-                    showToast('Backup failed: ' + error.message, 'error');
+                    if (error.message !== 'Export cancelled') {
+                        showToast('Backup failed: ' + error.message, 'error');
+                    }
                 }
             });
             backupNowBtn.style.flex = '1';
