@@ -700,13 +700,44 @@ const Views = {
                 checkbox.style.height = '36px'; // Reduced from 50px
                 checkbox.style.transform = 'scale(1.0)'; // Reduced from 1.3
                 
+                const nameAndEditContainer = document.createElement('div');
+                nameAndEditContainer.style.display = 'flex';
+                nameAndEditContainer.style.alignItems = 'center';
+                nameAndEditContainer.style.gap = '8px';
+                nameAndEditContainer.style.flex = '1';
+                
                 const nameEl = document.createElement('div');
                 nameEl.style.fontSize = '20px';
                 nameEl.style.fontWeight = '700';
+                nameEl.style.flex = '1';
                 nameEl.textContent = exercise.name;
                 
+                // Edit button
+                const editBtn = createButton('✏️', 'btn-icon btn-secondary', () => {
+                    // Save current workout state before navigating
+                    sessionStorage.setItem('workoutInProgress', JSON.stringify({
+                        categoryId: categoryId,
+                        customExerciseIds: customExerciseIds,
+                        categoryName: categoryName,
+                        exercises: exercises.map(e => e.id),
+                        completedIds: Array.from(completedSet),
+                        adjustedWeights: Object.fromEntries(adjustedWeights),
+                        workoutNotes: Object.fromEntries(workoutNotes),
+                        isDeload: isDeload
+                    }));
+                    
+                    router.navigate('edit-exercise', { id: exercise.id, returnToWorkout: true });
+                });
+                editBtn.style.minWidth = '40px';
+                editBtn.style.height = '40px';
+                editBtn.style.padding = '8px';
+                editBtn.title = 'Edit exercise';
+                
+                nameAndEditContainer.appendChild(nameEl);
+                nameAndEditContainer.appendChild(editBtn);
+                
                 checkboxContainer.appendChild(checkbox);
-                checkboxContainer.appendChild(nameEl);
+                checkboxContainer.appendChild(nameAndEditContainer);
                 itemContainer.appendChild(checkboxContainer);
                 
                 // Progression suggestion and progress
@@ -1535,7 +1566,23 @@ const Views = {
             await db.setExerciseCategories(exerciseData.id, selectedCatIds);
             
             showToast(isEdit ? 'Exercise updated' : 'Exercise added', 'success');
-            router.back();
+            
+            // Check if returning to workout
+            if (params.returnToWorkout) {
+                const workoutState = sessionStorage.getItem('workoutInProgress');
+                if (workoutState) {
+                    const state = JSON.parse(workoutState);
+                    sessionStorage.removeItem('workoutInProgress');
+                    router.navigate('workout', {
+                        categoryId: state.categoryId,
+                        customExerciseIds: state.customExerciseIds
+                    });
+                } else {
+                    router.back();
+                }
+            } else {
+                router.back();
+            }
         });
         content.appendChild(saveBtn);
         
