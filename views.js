@@ -624,6 +624,37 @@ const Views = {
         const workoutNotes = new Map();
         const timers = new Map();
         
+        // Check if returning from edit - restore workout state
+        const savedState = sessionStorage.getItem('workoutInProgress');
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                sessionStorage.removeItem('workoutInProgress'); // Clear it immediately
+                
+                // Restore completed exercises
+                if (state.completedIds) {
+                    state.completedIds.forEach(id => completedSet.add(id));
+                }
+                
+                // Restore adjusted weights
+                if (state.adjustedWeights) {
+                    Object.entries(state.adjustedWeights).forEach(([id, weight]) => {
+                        adjustedWeights.set(parseInt(id), weight);
+                    });
+                }
+                
+                // Restore workout notes
+                if (state.workoutNotes) {
+                    Object.entries(state.workoutNotes).forEach(([id, note]) => {
+                        workoutNotes.set(parseInt(id), note);
+                    });
+                }
+            } catch (error) {
+                console.error('Error restoring workout state:', error);
+                // Continue anyway with fresh state
+            }
+        }
+        
         // Store timers globally so they can be stopped when navigating away
         window.activeTimers = timers;
         
@@ -910,17 +941,17 @@ const Views = {
                     videoContainer.style.borderRadius = 'var(--border-radius-sm)';
                     videoContainer.style.background = '#000';
                     
-                    // Convert YouTube URL to embed format
+                    // Convert YouTube URL to embed format with controls enabled
                     let embedUrl = exercise.videoLink;
                     if (embedUrl.includes('youtube.com/watch')) {
                         const videoId = new URL(embedUrl).searchParams.get('v');
-                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                        embedUrl = `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1`;
                     } else if (embedUrl.includes('youtu.be/')) {
                         const videoId = embedUrl.split('youtu.be/')[1].split('?')[0];
-                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                        embedUrl = `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1`;
                     } else if (embedUrl.includes('vimeo.com/')) {
                         const videoId = embedUrl.split('vimeo.com/')[1].split('?')[0];
-                        embedUrl = `https://player.vimeo.com/video/${videoId}`;
+                        embedUrl = `https://player.vimeo.com/video/${videoId}?controls=1`;
                     }
                     
                     const iframe = document.createElement('iframe');
@@ -933,6 +964,7 @@ const Views = {
                     iframe.style.border = 'none';
                     iframe.setAttribute('allowfullscreen', '');
                     iframe.setAttribute('loading', 'lazy');
+                    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
                     
                     videoContainer.appendChild(iframe);
                     expandableSection.appendChild(videoContainer);
