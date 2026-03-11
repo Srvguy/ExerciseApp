@@ -726,7 +726,7 @@ const Views = {
                         isDeload: isDeload
                     }));
                     
-                    router.navigate('edit-exercise', { id: exercise.id, returnToWorkout: true });
+                    router.navigate('add-edit-exercise', { id: exercise.id, returnToWorkout: true });
                 });
                 editBtn.style.minWidth = '40px';
                 editBtn.style.height = '40px';
