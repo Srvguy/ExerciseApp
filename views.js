@@ -629,11 +629,18 @@ const Views = {
         if (savedState) {
             try {
                 const state = JSON.parse(savedState);
-                sessionStorage.removeItem('workoutInProgress'); // Clear it immediately
+                console.log('Restoring workout state:', state);
+                sessionStorage.removeItem('workoutInProgress'); // Clear it after reading
                 
                 // Restore completed exercises
-                if (state.completedIds) {
-                    state.completedIds.forEach(id => completedSet.add(id));
+                if (state.completedIds && state.completedIds.length > 0) {
+                    console.log('Restoring completed exercises:', state.completedIds);
+                    state.completedIds.forEach(id => {
+                        // Ensure ID is a number
+                        const numId = typeof id === 'string' ? parseInt(id) : id;
+                        completedSet.add(numId);
+                    });
+                    console.log('Completed set after restore:', Array.from(completedSet));
                 }
                 
                 // Restore adjusted weights
@@ -641,6 +648,7 @@ const Views = {
                     Object.entries(state.adjustedWeights).forEach(([id, weight]) => {
                         adjustedWeights.set(parseInt(id), weight);
                     });
+                    console.log('Restored weights:', Object.fromEntries(adjustedWeights));
                 }
                 
                 // Restore workout notes
@@ -648,6 +656,7 @@ const Views = {
                     Object.entries(state.workoutNotes).forEach(([id, note]) => {
                         workoutNotes.set(parseInt(id), note);
                     });
+                    console.log('Restored notes:', Object.fromEntries(workoutNotes));
                 }
             } catch (error) {
                 console.error('Error restoring workout state:', error);
@@ -746,7 +755,7 @@ const Views = {
                 // Edit button
                 const editBtn = createButton('✏️', 'btn-icon btn-secondary', () => {
                     // Save current workout state before navigating
-                    sessionStorage.setItem('workoutInProgress', JSON.stringify({
+                    const stateToSave = {
                         categoryId: categoryId,
                         customExerciseIds: customExerciseIds,
                         categoryName: categoryName,
@@ -755,7 +764,9 @@ const Views = {
                         adjustedWeights: Object.fromEntries(adjustedWeights),
                         workoutNotes: Object.fromEntries(workoutNotes),
                         isDeload: isDeload
-                    }));
+                    };
+                    console.log('Saving workout state:', stateToSave);
+                    sessionStorage.setItem('workoutInProgress', JSON.stringify(stateToSave));
                     
                     router.navigate('add-edit-exercise', { id: exercise.id, returnToWorkout: true });
                 });
@@ -1604,7 +1615,7 @@ const Views = {
                 const workoutState = sessionStorage.getItem('workoutInProgress');
                 if (workoutState) {
                     const state = JSON.parse(workoutState);
-                    sessionStorage.removeItem('workoutInProgress');
+                    // DON'T remove sessionStorage here - let workout screen restore it first
                     router.navigate('workout', {
                         categoryId: state.categoryId,
                         customExerciseIds: state.customExerciseIds
