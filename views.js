@@ -808,7 +808,8 @@ const Views = {
                     console.log('Saving workout state:', stateToSave);
                     sessionStorage.setItem('workoutInProgress', JSON.stringify(stateToSave));
                     
-                    router.navigate('add-edit-exercise', { id: exercise.id, returnToWorkout: true });
+                    // Use replace() instead of navigate() to avoid adding to history
+                    router.replace('add-edit-exercise', { id: exercise.id, returnToWorkout: true });
                 });
                 editBtn.style.minWidth = '40px';
                 editBtn.style.height = '40px';
