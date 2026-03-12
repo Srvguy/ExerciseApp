@@ -11,6 +11,13 @@ const router = {
         this.render();
     },
     
+    replace(view, params = {}) {
+        // Replace current view without adding to history
+        this.currentView = view;
+        this.currentParams = params;
+        this.render();
+    },
+    
     back() {
         // Stop any running timers before navigating
         if (this.currentView === 'workout' && window.activeTimers) {
@@ -96,7 +103,7 @@ const router = {
 
 // App version
 const APP_VERSION = '1.4.0';
-const APP_BUILD = 25;
+const APP_BUILD = 14;
 
 // Check for updates from server
 // App Initialization

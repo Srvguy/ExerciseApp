@@ -543,8 +543,33 @@ const Views = {
         let categoryName = 'Custom';
         let exercises = [];
         
-        // Check if custom exercise IDs were provided (from custom workout OR manual category selection)
-        if (customExerciseIds && customExerciseIds.length > 0) {
+        // Check if we're restoring from a saved state (returning from edit)
+        const savedState = sessionStorage.getItem('workoutInProgress');
+        let restoringFromSave = false;
+        let savedExerciseIds = null;
+        
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                if (state.exercises && state.exercises.length > 0) {
+                    restoringFromSave = true;
+                    savedExerciseIds = state.exercises;
+                    categoryName = state.categoryName || 'Custom';
+                    console.log('Restoring workout with saved exercises:', savedExerciseIds);
+                }
+            } catch (error) {
+                console.error('Error parsing saved state for exercises:', error);
+            }
+        }
+        
+        // Load exercises - use saved list if restoring, otherwise use normal logic
+        if (restoringFromSave && savedExerciseIds) {
+            // Restore the exact same exercises that were in the workout
+            for (const id of savedExerciseIds) {
+                const exercise = await db.getExercise(id);
+                if (exercise) exercises.push(exercise);
+            }
+        } else if (customExerciseIds && customExerciseIds.length > 0) {
             // Load the specific exercises chosen by user
             for (const id of customExerciseIds) {
                 const exercise = await db.getExercise(id);
@@ -629,7 +654,7 @@ const Views = {
         const timers = new Map();
         
         // Check if returning from edit - restore workout state
-        const savedState = sessionStorage.getItem('workoutInProgress');
+        // savedState already retrieved above, just reuse it
         console.log('=== WORKOUT LOADING ===');
         console.log('sessionStorage content:', savedState);
         if (savedState) {
@@ -1631,7 +1656,8 @@ const Views = {
                 if (workoutState) {
                     const state = JSON.parse(workoutState);
                     // DON'T remove sessionStorage here - let workout screen restore it first
-                    router.navigate('workout', {
+                    // Use replace() instead of navigate() to avoid adding to history
+                    router.replace('workout', {
                         categoryId: state.categoryId,
                         customExerciseIds: state.customExerciseIds
                     });
