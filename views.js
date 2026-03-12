@@ -571,6 +571,10 @@ const Views = {
             console.error('No categoryId or customExerciseIds provided to workout');
         }
         
+        console.log('=== EXERCISES LOADED ===');
+        console.log('Exercise IDs:', exercises.map(e => ({ id: e.id, name: e.name })));
+        console.log('=== END EXERCISES LOADED ===');
+        
         const header = createHeader(`${categoryName.toUpperCase()} WORKOUT`, true);
         container.appendChild(header);
         
@@ -626,21 +630,27 @@ const Views = {
         
         // Check if returning from edit - restore workout state
         const savedState = sessionStorage.getItem('workoutInProgress');
+        console.log('=== WORKOUT LOADING ===');
+        console.log('sessionStorage content:', savedState);
         if (savedState) {
             try {
                 const state = JSON.parse(savedState);
-                console.log('Restoring workout state:', state);
+                console.log('Parsed state:', state);
+                console.log('completedIds from state:', state.completedIds);
                 sessionStorage.removeItem('workoutInProgress'); // Clear it after reading
                 
                 // Restore completed exercises
                 if (state.completedIds && state.completedIds.length > 0) {
-                    console.log('Restoring completed exercises:', state.completedIds);
+                    console.log('Attempting to restore completed exercises:', state.completedIds);
                     state.completedIds.forEach(id => {
                         // Ensure ID is a number
                         const numId = typeof id === 'string' ? parseInt(id) : id;
+                        console.log('Adding to completedSet:', numId, 'type:', typeof numId);
                         completedSet.add(numId);
                     });
-                    console.log('Completed set after restore:', Array.from(completedSet));
+                    console.log('completedSet after restore:', Array.from(completedSet));
+                } else {
+                    console.log('No completedIds to restore');
                 }
                 
                 // Restore adjusted weights
@@ -662,7 +672,10 @@ const Views = {
                 console.error('Error restoring workout state:', error);
                 // Continue anyway with fresh state
             }
+        } else {
+            console.log('No saved state found in sessionStorage');
         }
+        console.log('=== END WORKOUT LOADING ===');
         
         // Store timers globally so they can be stopped when navigating away
         window.activeTimers = timers;
@@ -698,6 +711,8 @@ const Views = {
             for (const exercise of sorted) {
                 const card = createCard('');
                 const isCompleted = completedSet.has(exercise.id);
+                
+                console.log(`Exercise ${exercise.id} (${exercise.name}): completedSet.has = ${isCompleted}, completedSet =`, Array.from(completedSet));
                 
                 if (isCompleted) {
                     card.style.opacity = '0.6';
