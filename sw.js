@@ -1,5 +1,5 @@
 // Service Worker for PWA offline support
-const CACHE_NAME = 'fittrack-v1.4.0-build14';
+const CACHE_NAME = 'fittrack-v1.4.0-build15';
 const urlsToCache = [
     './',
     './index.html',
