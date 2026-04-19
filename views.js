@@ -146,7 +146,7 @@ const Views = {
                     router.navigate('workout', { categoryId: category.id });
                 }
             });
-            btn.style.background = `linear-gradient(135deg, ${category.color}, ${shadeColor(category.color, -20)})`;
+            btn.style.background = `linear-gradient(135deg, ${category.color || '#4CAF50'}, ${shadeColor(category.color || '#4CAF50', -20)})`;
             content.appendChild(btn);
         }
         
@@ -1716,7 +1716,7 @@ const Views = {
             
             const label = document.createElement('span');
             label.textContent = category.name;
-            label.style.color = category.color;
+            label.style.color = category.color || '#4CAF50';
             label.style.fontWeight = '600';
             
             checkboxContainer.appendChild(checkbox);
@@ -1899,7 +1899,7 @@ const Views = {
             
             for (const category of categories) {
                 const card = createCard('');
-                card.style.borderLeft = `8px solid ${category.color}`;
+                card.style.borderLeft = `8px solid ${category.color || '#4CAF50'}`;
                 
                 const itemContainer = document.createElement('div');
                 itemContainer.className = 'flex flex-between';

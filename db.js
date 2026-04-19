@@ -207,11 +207,17 @@ class Database {
     }
 
     async getCategory(id) {
-        return await this.get('categories', id);
+        const cat = await this.get('categories', id);
+        if (cat && !cat.color) cat.color = '#4CAF50';
+        return cat;
     }
 
     async getAllCategories() {
-        return await this.getAll('categories');
+        const cats = await this.getAll('categories');
+        return cats.map(cat => {
+            if (!cat.color) cat.color = '#4CAF50';
+            return cat;
+        });
     }
 
     async deleteCategory(id) {
