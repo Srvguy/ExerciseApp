@@ -162,6 +162,7 @@ class Database {
             restTimerSeconds: exercise.restTimerSeconds || 0,
             progressionThreshold: exercise.progressionThreshold || 3,
             progressionIncrement: exercise.progressionIncrement || 5,
+            priority: exercise.priority || 3,
             imagePath: exercise.imagePath || '',
             lastUsedDate: 0,
             workoutsSinceLastUse: 0

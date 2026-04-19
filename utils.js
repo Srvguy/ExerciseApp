@@ -152,34 +152,53 @@ function selectExercisesForWorkout(exercises, rotationFrequency, count) {
         return shuffleArray([...exercises]);
     }
 
-    // Separate into overdue and not-yet-due buckets.
-    // Never-used exercises (lastUsedDate === 0) are treated as maximally overdue.
+    // Priority (1-5, default 3) multiplies an exercise's effective age so
+    // high-priority exercises are treated as more overdue than they really are,
+    // and low-priority exercises as less overdue.
+    //
+    //   Priority 1 (Low)      → age multiplier 0.5  (appears half as often)
+    //   Priority 2 (Below avg)→ age multiplier 0.75
+    //   Priority 3 (Normal)   → age multiplier 1.0  (no change)
+    //   Priority 4 (High)     → age multiplier 1.5
+    //   Priority 5 (Must-do)  → age multiplier 2.5  (appears much more often)
+    //
+    // Effective age = workoutsSinceLastUse * multiplier.
+    // An exercise is considered overdue when its effective age >= rotationFrequency.
+    const priorityMultiplier = p => {
+        switch (parseInt(p) || 3) {
+            case 1: return 0.5;
+            case 2: return 0.75;
+            case 3: return 1.0;
+            case 4: return 1.5;
+            case 5: return 2.5;
+            default: return 1.0;
+        }
+    };
+
+    const effectiveAge = e => {
+        const age = (!e.lastUsedDate || e.lastUsedDate === 0)
+            ? rotationFrequency * 10   // never-used = maximally old
+            : (e.workoutsSinceLastUse || 0);
+        return age * priorityMultiplier(e.priority);
+    };
+
+    // Separate into overdue and not-yet-due buckets using effective age.
     const overdue = [];
     const notYetDue = [];
 
     for (const e of exercises) {
-        const isNeverUsed = !e.lastUsedDate || e.lastUsedDate === 0;
-        const isOverdue = isNeverUsed || (e.workoutsSinceLastUse >= rotationFrequency);
-        if (isOverdue) {
+        if (effectiveAge(e) >= rotationFrequency) {
             overdue.push(e);
         } else {
             notYetDue.push(e);
         }
     }
 
-    // Sort overdue exercises: most-overdue first, never-used treated as
-    // workoutsSinceLastUse = rotationFrequency * 10 (very high).
-    // Ties get a tiny random jitter so the order varies.
-    overdue.sort((a, b) => {
-        const aScore = (!a.lastUsedDate || a.lastUsedDate === 0)
-            ? rotationFrequency * 10
-            : a.workoutsSinceLastUse;
-        const bScore = (!b.lastUsedDate || b.lastUsedDate === 0)
-            ? rotationFrequency * 10
-            : b.workoutsSinceLastUse;
-        // Descending, with small jitter to vary tie-breaking
-        return (bScore + Math.random() * 0.5) - (aScore + Math.random() * 0.5);
-    });
+    // Sort overdue exercises: highest effective age first.
+    // Ties get a tiny random jitter so order varies between workouts.
+    overdue.sort((a, b) =>
+        (effectiveAge(b) + Math.random() * 0.5) - (effectiveAge(a) + Math.random() * 0.5)
+    );
 
     const selected = [];
 
@@ -189,20 +208,17 @@ function selectExercisesForWorkout(exercises, rotationFrequency, count) {
         selected.push(overdue[i]);
     }
 
-    // If we still have open slots, fill from the not-yet-due pool
-    // using weighted random so exercises closer to their due date are preferred.
+    // Fill remaining slots from the not-yet-due pool via weighted random draw.
+    // Weight = effective age so exercises closer to their due date (and with
+    // higher priority) are more likely to be pulled forward.
     if (selected.length < count && notYetDue.length > 0) {
         const slotsLeft = count - selected.length;
 
-        // Weight each not-yet-due exercise by its proximity to rotation frequency.
-        // An exercise with workoutsSinceLastUse = rotationFrequency - 1 gets the
-        // highest weight; one just used (workoutsSinceLastUse = 0) gets weight 1.
         const weighted = notYetDue.map(e => ({
             exercise: e,
-            weight: Math.max(1, e.workoutsSinceLastUse + 1)
+            weight: Math.max(0.5, effectiveAge(e))
         }));
 
-        // Weighted random selection without replacement
         for (let i = 0; i < slotsLeft && weighted.length > 0; i++) {
             const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
             let rand = Math.random() * totalWeight;

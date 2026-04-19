@@ -790,9 +790,30 @@ const Views = {
                 nameEl.style.flex = '1';
                 
                 const nameTitleEl = document.createElement('div');
-                nameTitleEl.style.fontSize = '20px';
-                nameTitleEl.style.fontWeight = '700';
-                nameTitleEl.textContent = exercise.name;
+                nameTitleEl.style.display = 'flex';
+                nameTitleEl.style.alignItems = 'center';
+                nameTitleEl.style.gap = '8px';
+                
+                const nameTitleText = document.createElement('span');
+                nameTitleText.style.fontSize = '20px';
+                nameTitleText.style.fontWeight = '700';
+                nameTitleText.textContent = exercise.name;
+                nameTitleEl.appendChild(nameTitleText);
+                
+                // Priority badge (only show non-default priorities)
+                const p = exercise.priority || 3;
+                if (p !== 3) {
+                    const priorityBadge = document.createElement('span');
+                    const priorityLabels = { 1: '▽ Low', 2: '▿ Below avg', 4: '▴ High', 5: '▲ Must-do' };
+                    const priorityColors = { 1: '#7878a3', 2: '#a0a0c0', 4: '#ffaa00', 5: '#ff3366' };
+                    priorityBadge.textContent = priorityLabels[p] || '';
+                    priorityBadge.style.cssText = `
+                        font-size: 11px; font-weight: 700; padding: 2px 7px;
+                        border-radius: 10px; background: ${priorityColors[p] || '#7878a3'};
+                        color: #fff; white-space: nowrap; flex-shrink: 0;
+                    `;
+                    nameTitleEl.appendChild(priorityBadge);
+                }
                 nameEl.appendChild(nameTitleEl);
                 
                 // Last performed date
@@ -1682,6 +1703,20 @@ const Views = {
         const notesInput = createFormInput('Notes', 'textarea', 'Notes about this exercise', exercise?.notes || '');
         content.appendChild(notesInput.group);
         
+        // Priority picker
+        const currentPriority = exercise?.priority || 3;
+        const priorityPicker = createNumberPicker('Priority', 1, 5, currentPriority, null);
+        content.appendChild(priorityPicker.container);
+        
+        const priorityDesc = document.createElement('div');
+        priorityDesc.style.fontSize = '12px';
+        priorityDesc.style.color = 'var(--color-text-tertiary)';
+        priorityDesc.style.marginTop = '-8px';
+        priorityDesc.style.marginBottom = 'var(--spacing-md)';
+        priorityDesc.innerHTML =
+            '1 = Low (appears less often) &nbsp;·&nbsp; 3 = Normal &nbsp;·&nbsp; 5 = Must-do (appears much more often)';
+        content.appendChild(priorityDesc);
+        
         // Video link
         const videoLinkInput = createFormInput('Video Link', 'text', 'YouTube or other video URL', exercise?.videoLink || '');
         const videoDesc = document.createElement('div');
@@ -1810,6 +1845,7 @@ const Views = {
                 restTimerSeconds: parseInt(restTimerInput.input.value) || 0,
                 progressionThreshold: parseInt(progressionInput.input.value) || 3,
                 progressionIncrement: parseInt(incrementInput.input.value) || 5,
+                priority: priorityPicker.getValue(),
                 imagePath: selectedImage || ''
             };
             
