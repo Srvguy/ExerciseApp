@@ -787,10 +787,26 @@ const Views = {
                 nameAndEditContainer.style.flex = '1';
                 
                 const nameEl = document.createElement('div');
-                nameEl.style.fontSize = '20px';
-                nameEl.style.fontWeight = '700';
                 nameEl.style.flex = '1';
-                nameEl.textContent = exercise.name;
+                
+                const nameTitleEl = document.createElement('div');
+                nameTitleEl.style.fontSize = '20px';
+                nameTitleEl.style.fontWeight = '700';
+                nameTitleEl.textContent = exercise.name;
+                nameEl.appendChild(nameTitleEl);
+                
+                // Last performed date
+                const lastPerformedEl = document.createElement('div');
+                lastPerformedEl.style.fontSize = '12px';
+                lastPerformedEl.style.color = 'var(--color-text-tertiary)';
+                lastPerformedEl.style.fontWeight = '500';
+                lastPerformedEl.style.marginTop = '2px';
+                if (exercise.lastUsedDate && exercise.lastUsedDate > 0) {
+                    lastPerformedEl.textContent = `Last: ${formatDate(exercise.lastUsedDate)}`;
+                } else {
+                    lastPerformedEl.textContent = 'Last: never';
+                }
+                nameEl.appendChild(lastPerformedEl);
                 
                 // Edit button
                 const editBtn = createButton('✏️', 'btn-icon btn-secondary', () => {
@@ -1061,7 +1077,7 @@ const Views = {
         const buttonsContainer = document.createElement('div');
         buttonsContainer.className = 'flex flex-column gap-md mt-lg';
         
-        // Add random exercise button (only for category workouts)
+        // Add exercise button - for category workouts add random, for custom workouts open picker
         if (categoryId) {
             const addRandomBtn = createButton('➕ ADD RANDOM EXERCISE', 'btn-secondary', async () => {
                 const category = await db.getCategory(categoryId);
@@ -1086,6 +1102,154 @@ const Views = {
                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             });
             buttonsContainer.appendChild(addRandomBtn);
+        } else {
+            // Custom workout — show a searchable picker modal to add any exercise
+            const addExerciseBtn = createButton('➕ ADD EXERCISE', 'btn-secondary', async () => {
+                const allExercises = await db.getAllExercises();
+                const currentIds = new Set(exercises.map(e => e.id));
+                const available = allExercises.filter(e => !currentIds.has(e.id));
+
+                if (available.length === 0) {
+                    showToast('All exercises are already in this workout', 'warning');
+                    return;
+                }
+
+                // Build a modal with a search input and a list of exercises
+                const modalContainer = document.getElementById('modal-container');
+                modalContainer.innerHTML = '';
+
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.style.cssText = `
+                    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+                    display: flex; align-items: center; justify-content: center;
+                    z-index: 1000; padding: 16px;
+                `;
+
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    background: var(--color-bg-secondary);
+                    border-radius: var(--border-radius);
+                    width: 100%; max-width: 500px;
+                    max-height: 80vh; display: flex; flex-direction: column;
+                    overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                `;
+
+                // Modal header
+                const modalHeader = document.createElement('div');
+                modalHeader.style.cssText = `
+                    padding: 16px; display: flex; align-items: center;
+                    justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1);
+                    flex-shrink: 0;
+                `;
+                const modalTitle = document.createElement('div');
+                modalTitle.style.cssText = 'font-size: 18px; font-weight: 700;';
+                modalTitle.textContent = 'ADD EXERCISE';
+                const closeModalBtn = createButton('✕', 'btn-icon btn-secondary', () => {
+                    modalContainer.innerHTML = '';
+                });
+                closeModalBtn.style.cssText = 'min-width: 36px; height: 36px; padding: 4px;';
+                modalHeader.appendChild(modalTitle);
+                modalHeader.appendChild(closeModalBtn);
+                modal.appendChild(modalHeader);
+
+                // Search input
+                const searchWrapper = document.createElement('div');
+                searchWrapper.style.cssText = 'padding: 12px 16px; flex-shrink: 0;';
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.className = 'form-input';
+                searchInput.placeholder = 'Search exercises...';
+                searchInput.style.margin = '0';
+                searchWrapper.appendChild(searchInput);
+                modal.appendChild(searchWrapper);
+
+                // Exercise list
+                const listEl = document.createElement('div');
+                listEl.style.cssText = 'overflow-y: auto; flex: 1; padding: 0 16px 16px;';
+                modal.appendChild(listEl);
+
+                let filtered = [...available];
+
+                function renderModalList() {
+                    listEl.innerHTML = '';
+                    if (filtered.length === 0) {
+                        const empty = document.createElement('div');
+                        empty.style.cssText = 'text-align: center; padding: 24px; color: var(--color-text-tertiary);';
+                        empty.textContent = 'No exercises found';
+                        listEl.appendChild(empty);
+                        return;
+                    }
+                    for (const ex of filtered) {
+                        const row = document.createElement('div');
+                        row.style.cssText = `
+                            display: flex; align-items: center; justify-content: space-between;
+                            padding: 12px; margin-bottom: 8px; cursor: pointer;
+                            background: var(--color-bg-card); border-radius: var(--border-radius-sm);
+                            border: 2px solid transparent; transition: border-color 0.15s;
+                        `;
+                        row.onmouseenter = () => row.style.borderColor = 'var(--color-accent-primary)';
+                        row.onmouseleave = () => row.style.borderColor = 'transparent';
+
+                        const info = document.createElement('div');
+                        const nameDiv = document.createElement('div');
+                        nameDiv.style.cssText = 'font-weight: 700; font-size: 16px;';
+                        nameDiv.textContent = ex.name;
+
+                        const metaDiv = document.createElement('div');
+                        metaDiv.style.cssText = 'font-size: 12px; color: var(--color-text-tertiary); margin-top: 2px;';
+                        const parts = [];
+                        if (ex.sets) parts.push(`${ex.sets} sets`);
+                        if (ex.reps) parts.push(`${ex.reps} reps`);
+                        if (ex.weight) parts.push(ex.weight);
+                        if (ex.lastUsedDate && ex.lastUsedDate > 0) parts.push(`Last: ${formatDate(ex.lastUsedDate)}`);
+                        metaDiv.textContent = parts.join(' · ');
+
+                        info.appendChild(nameDiv);
+                        info.appendChild(metaDiv);
+
+                        const addBtn = createButton('ADD', 'btn-primary', async (e) => {
+                            e.stopPropagation();
+                            exercises.push(ex);
+                            modalContainer.innerHTML = '';
+                            showToast(`Added: ${ex.name}`, 'success');
+                            await renderExercises();
+                            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                        });
+                        addBtn.style.cssText = 'min-width: 60px; height: 36px; font-size: 13px; flex-shrink: 0;';
+
+                        row.appendChild(info);
+                        row.appendChild(addBtn);
+                        row.onclick = (e) => {
+                            if (!e.target.closest('button')) addBtn.click();
+                        };
+                        listEl.appendChild(row);
+                    }
+                }
+
+                searchInput.oninput = () => {
+                    const q = searchInput.value.toLowerCase();
+                    filtered = available.filter(ex =>
+                        ex.name.toLowerCase().includes(q) ||
+                        (ex.notes && ex.notes.toLowerCase().includes(q))
+                    );
+                    renderModalList();
+                };
+
+                renderModalList();
+
+                // Close on overlay click
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) modalContainer.innerHTML = '';
+                };
+
+                overlay.appendChild(modal);
+                modalContainer.appendChild(overlay);
+
+                // Focus search
+                setTimeout(() => searchInput.focus(), 100);
+            });
+            buttonsContainer.appendChild(addExerciseBtn);
         }
         
         // Complete workout button
@@ -1167,16 +1331,35 @@ const Views = {
                     exercise.timerSeconds = finalTimer;
                     exercise.restTimerSeconds = finalRestTimer;
                     await db.updateExercise(exercise);
+                } else {
+                    // Exercise was present but not completed — still increment its
+                    // counter so it doesn't get perpetually re-shown every workout.
+                    exercise.workoutsSinceLastUse = (exercise.workoutsSinceLastUse || 0) + 1;
+                    await db.updateExercise(exercise);
                 }
             }
             
-            // Update workoutsSinceLastUse for non-used exercises in category
+            // Update workoutsSinceLastUse for exercises NOT in this workout at all.
+            // This applies to all categories the workout exercises belong to, and also
+            // handles custom workouts (categoryId may be null).
+            const workoutExerciseIds = new Set(exercises.map(e => e.id));
+            
             if (categoryId) {
-                const allExercises = await db.getCategoryExercises(categoryId);
-                const usedIds = new Set(exercises.map(e => e.id));
+                // Category workout: increment all category exercises not in this session
+                const allCategoryExercises = await db.getCategoryExercises(categoryId);
+                for (const ex of allCategoryExercises) {
+                    if (!workoutExerciseIds.has(ex.id)) {
+                        ex.workoutsSinceLastUse = (ex.workoutsSinceLastUse || 0) + 1;
+                        await db.updateExercise(ex);
+                    }
+                }
+            } else {
+                // Custom workout: increment counter for ALL exercises not in this session,
+                // so the rotation algorithm has accurate data next time a category workout runs.
+                const allExercises = await db.getAllExercises();
                 for (const ex of allExercises) {
-                    if (!usedIds.has(ex.id)) {
-                        ex.workoutsSinceLastUse++;
+                    if (!workoutExerciseIds.has(ex.id)) {
+                        ex.workoutsSinceLastUse = (ex.workoutsSinceLastUse || 0) + 1;
                         await db.updateExercise(ex);
                     }
                 }

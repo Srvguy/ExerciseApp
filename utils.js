@@ -129,69 +129,97 @@ function adjustWeight(weightStr, delta) {
 }
 
 // Smart rotation algorithm for exercises
+//
+// How it works:
+//   rotationFrequency = the category setting "Rotation Frequency" (e.g. 3 means
+//     each exercise should appear roughly once every 3 workouts).
+//   count = "Exercises Per Workout"
+//
+// Selection rules (in priority order):
+//   1. Exercises that are overdue (workoutsSinceLastUse >= rotationFrequency) are
+//      ALWAYS preferred and fill slots first — sorted by most-overdue first.
+//   2. Never-used exercises (lastUsedDate === 0) are treated as maximally overdue.
+//   3. If more overdue exercises exist than available slots, we pick the most-overdue
+//      ones deterministically (ties broken by a small random jitter so the same
+//      exercises don't always win).
+//   4. Remaining slots are filled from non-overdue exercises, weighted by how close
+//      they are to their rotation due date (higher workoutsSinceLastUse = higher
+//      chance), with a small random jitter for variety.
+//   5. Final list is shuffled so exercise order varies each workout.
 function selectExercisesForWorkout(exercises, rotationFrequency, count) {
+    if (exercises.length === 0) return [];
     if (exercises.length <= count) {
         return shuffleArray([...exercises]);
     }
-    
-    // Calculate priority scores for each exercise
-    const scoredExercises = exercises.map(e => {
-        let score = 0;
-        
-        // Primary factor: workouts since last use (exponential weight)
-        // This creates strong preference for neglected exercises
-        score += Math.pow(e.workoutsSinceLastUse + 1, 1.5) * 100;
-        
-        // Secondary factor: overdue exercises get massive boost
-        if (e.workoutsSinceLastUse >= rotationFrequency) {
-            score += 1000;
+
+    // Separate into overdue and not-yet-due buckets.
+    // Never-used exercises (lastUsedDate === 0) are treated as maximally overdue.
+    const overdue = [];
+    const notYetDue = [];
+
+    for (const e of exercises) {
+        const isNeverUsed = !e.lastUsedDate || e.lastUsedDate === 0;
+        const isOverdue = isNeverUsed || (e.workoutsSinceLastUse >= rotationFrequency);
+        if (isOverdue) {
+            overdue.push(e);
+        } else {
+            notYetDue.push(e);
         }
-        
-        // Tertiary factor: never-used exercises get priority
-        if (e.lastUsedDate === 0) {
-            score += 500;
-        }
-        
-        // Add randomness (±30% variance)
-        const randomFactor = 0.7 + (Math.random() * 0.6);
-        score *= randomFactor;
-        
-        return { exercise: e, score: score };
-    });
-    
-    // Sort by score (highest first)
-    scoredExercises.sort((a, b) => b.score - a.score);
-    
-    // Use weighted random selection from top candidates
-    const selected = [];
-    const candidatePool = [...scoredExercises];
-    
-    for (let i = 0; i < count && candidatePool.length > 0; i++) {
-        // Consider top 50% of remaining candidates (or minimum 3)
-        const poolSize = Math.max(3, Math.ceil(candidatePool.length * 0.5));
-        const topCandidates = candidatePool.slice(0, poolSize);
-        
-        // Weighted random selection from top candidates
-        const totalScore = topCandidates.reduce((sum, item) => sum + item.score, 0);
-        let randomValue = Math.random() * totalScore;
-        
-        let selectedItem = topCandidates[0];
-        for (const item of topCandidates) {
-            randomValue -= item.score;
-            if (randomValue <= 0) {
-                selectedItem = item;
-                break;
-            }
-        }
-        
-        selected.push(selectedItem.exercise);
-        
-        // Remove selected from pool
-        const index = candidatePool.indexOf(selectedItem);
-        candidatePool.splice(index, 1);
     }
-    
-    // Final shuffle for variety in exercise order
+
+    // Sort overdue exercises: most-overdue first, never-used treated as
+    // workoutsSinceLastUse = rotationFrequency * 10 (very high).
+    // Ties get a tiny random jitter so the order varies.
+    overdue.sort((a, b) => {
+        const aScore = (!a.lastUsedDate || a.lastUsedDate === 0)
+            ? rotationFrequency * 10
+            : a.workoutsSinceLastUse;
+        const bScore = (!b.lastUsedDate || b.lastUsedDate === 0)
+            ? rotationFrequency * 10
+            : b.workoutsSinceLastUse;
+        // Descending, with small jitter to vary tie-breaking
+        return (bScore + Math.random() * 0.5) - (aScore + Math.random() * 0.5);
+    });
+
+    const selected = [];
+
+    // Fill as many slots as possible from the overdue pool
+    const overdueToTake = Math.min(overdue.length, count);
+    for (let i = 0; i < overdueToTake; i++) {
+        selected.push(overdue[i]);
+    }
+
+    // If we still have open slots, fill from the not-yet-due pool
+    // using weighted random so exercises closer to their due date are preferred.
+    if (selected.length < count && notYetDue.length > 0) {
+        const slotsLeft = count - selected.length;
+
+        // Weight each not-yet-due exercise by its proximity to rotation frequency.
+        // An exercise with workoutsSinceLastUse = rotationFrequency - 1 gets the
+        // highest weight; one just used (workoutsSinceLastUse = 0) gets weight 1.
+        const weighted = notYetDue.map(e => ({
+            exercise: e,
+            weight: Math.max(1, e.workoutsSinceLastUse + 1)
+        }));
+
+        // Weighted random selection without replacement
+        for (let i = 0; i < slotsLeft && weighted.length > 0; i++) {
+            const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
+            let rand = Math.random() * totalWeight;
+            let chosenIdx = 0;
+            for (let j = 0; j < weighted.length; j++) {
+                rand -= weighted[j].weight;
+                if (rand <= 0) {
+                    chosenIdx = j;
+                    break;
+                }
+            }
+            selected.push(weighted[chosenIdx].exercise);
+            weighted.splice(chosenIdx, 1);
+        }
+    }
+
+    // Shuffle for variety in presentation order
     return shuffleArray(selected);
 }
 
