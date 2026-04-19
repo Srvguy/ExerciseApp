@@ -175,11 +175,17 @@ class Database {
     }
 
     async getExercise(id) {
-        return await this.get('exercises', id);
+        const ex = await this.get('exercises', id);
+        if (ex && (ex.priority === undefined || ex.priority === null)) ex.priority = 3;
+        return ex;
     }
 
     async getAllExercises() {
-        return await this.getAll('exercises');
+        const exercises = await this.getAll('exercises');
+        return exercises.map(ex => {
+            if (ex.priority === undefined || ex.priority === null) ex.priority = 3;
+            return ex;
+        });
     }
 
     async deleteExercise(id) {
