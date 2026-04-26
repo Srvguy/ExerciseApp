@@ -124,6 +124,72 @@ const Views = {
             content.appendChild(backupBanner);
         }
         
+        // Last completed workout banner
+        const allSessions = await db.getAllWorkoutSessions();
+        // Find the most recent session where at least one exercise was completed
+        const lastCompleted = allSessions.find(s => s.completedCount > 0);
+        if (lastCompleted) {
+            const lastBanner = document.createElement('div');
+            lastBanner.style.padding = '14px 16px';
+            lastBanner.style.background = 'var(--color-bg-card)';
+            lastBanner.style.border = '2px solid rgba(255,255,255,0.08)';
+            lastBanner.style.borderRadius = 'var(--border-radius)';
+            lastBanner.style.marginBottom = 'var(--spacing-lg)';
+            lastBanner.style.display = 'flex';
+            lastBanner.style.alignItems = 'center';
+            lastBanner.style.gap = '12px';
+
+            const lastIcon = document.createElement('div');
+            lastIcon.style.fontSize = '28px';
+            lastIcon.style.flexShrink = '0';
+            lastIcon.textContent = '✅';
+
+            const lastInfo = document.createElement('div');
+            lastInfo.style.flex = '1';
+            lastInfo.style.minWidth = '0';
+
+            const lastLabel = document.createElement('div');
+            lastLabel.style.fontSize = '11px';
+            lastLabel.style.fontWeight = '700';
+            lastLabel.style.color = 'var(--color-text-tertiary)';
+            lastLabel.style.textTransform = 'uppercase';
+            lastLabel.style.letterSpacing = '0.05em';
+            lastLabel.textContent = 'Last completed workout';
+
+            const lastCatName = document.createElement('div');
+            lastCatName.style.fontSize = '17px';
+            lastCatName.style.fontWeight = '700';
+            lastCatName.style.marginTop = '2px';
+            lastCatName.style.overflow = 'hidden';
+            lastCatName.style.textOverflow = 'ellipsis';
+            lastCatName.style.whiteSpace = 'nowrap';
+
+            // Colour the category name if we can match it to a real category
+            let catColor = 'var(--color-accent-primary)';
+            if (lastCompleted.categoryId) {
+                const lastCat = await db.getCategory(lastCompleted.categoryId);
+                if (lastCat && lastCat.color) catColor = lastCat.color;
+            } else {
+                catColor = 'var(--color-accent-purple)';
+            }
+            lastCatName.style.color = catColor;
+            lastCatName.textContent = lastCompleted.categoryName || 'Custom';
+
+            const lastMeta = document.createElement('div');
+            lastMeta.style.fontSize = '12px';
+            lastMeta.style.color = 'var(--color-text-tertiary)';
+            lastMeta.style.marginTop = '2px';
+            lastMeta.textContent =
+                `${formatDate(lastCompleted.date)} · ${lastCompleted.completedCount}/${lastCompleted.totalCount} exercises`;
+
+            lastInfo.appendChild(lastLabel);
+            lastInfo.appendChild(lastCatName);
+            lastInfo.appendChild(lastMeta);
+            lastBanner.appendChild(lastIcon);
+            lastBanner.appendChild(lastInfo);
+            content.appendChild(lastBanner);
+        }
+
         // Custom Workout Button
         const customBtn = createButton('CUSTOM WORKOUT', 'btn-large btn-purple', () => {
             router.navigate('custom-workout');
@@ -725,12 +791,14 @@ const Views = {
         async function renderExercises() {
             listContainer.innerHTML = '';
             
-            // Sort: incomplete first, completed last
+            // Sort: incomplete first (then by priority desc), completed last
             const sorted = [...exercises].sort((a, b) => {
                 const aCompleted = completedSet.has(a.id);
                 const bCompleted = completedSet.has(b.id);
-                if (aCompleted === bCompleted) return 0;
-                return aCompleted ? 1 : -1;
+                // Completed exercises always sink to the bottom
+                if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+                // Within same completion group, sort by priority descending (5 first)
+                return (b.priority || 3) - (a.priority || 3);
             });
             
             for (const exercise of sorted) {
