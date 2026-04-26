@@ -1041,9 +1041,7 @@ const Views = {
                 if (exercise.timerSeconds) {
                     const currentTimerSeconds = adjustedTimers.get(exercise.id) || exercise.timerSeconds;
                     const currentRestSeconds = adjustedRestTimers.get(exercise.id) || exercise.restTimerSeconds || 0;
-                    const timerComp = createTimer(currentTimerSeconds, currentRestSeconds, () => {
-                        checkbox.click(); // Auto-complete on timer finish
-                    });
+                    const timerComp = createTimer(currentTimerSeconds, currentRestSeconds);
                     timers.set(exercise.id, timerComp);
                     
                     // Update adjusted timer values on any change
