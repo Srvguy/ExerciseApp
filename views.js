@@ -716,6 +716,8 @@ const Views = {
         const adjustedWeights = new Map();
         const adjustedTimers = new Map();
         const adjustedRestTimers = new Map();
+        const adjustedSets = new Map();
+        const adjustedReps = new Map();
         const workoutNotes = new Map();
         const timers = new Map();
         
@@ -986,20 +988,128 @@ const Views = {
                 const detailsContainer = document.createElement('div');
                 detailsContainer.style.marginTop = 'var(--spacing-sm)';
                 
+                // Sets stepper
                 if (exercise.sets) {
-                    const setsEl = document.createElement('div');
-                    setsEl.style.fontSize = '16px';
-                    setsEl.style.marginBottom = '4px';
-                    setsEl.textContent = `Sets: ${exercise.sets}`;
-                    detailsContainer.appendChild(setsEl);
+                    const currentSets = adjustedSets.has(exercise.id)
+                        ? adjustedSets.get(exercise.id)
+                        : parseInt(exercise.sets) || 0;
+                    if (!adjustedSets.has(exercise.id)) adjustedSets.set(exercise.id, currentSets);
+
+                    const setsRow = document.createElement('div');
+                    setsRow.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:6px;';
+
+                    const setsLabel = document.createElement('div');
+                    setsLabel.style.cssText = 'font-size:14px; color:var(--color-text-secondary); width:36px; flex-shrink:0;';
+                    setsLabel.textContent = 'Sets';
+
+                    const setsMinusBtn = document.createElement('button');
+                    setsMinusBtn.className = 'btn btn-small btn-secondary';
+                    setsMinusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
+                    setsMinusBtn.textContent = '−';
+
+                    const setsValueEl = document.createElement('div');
+                    setsValueEl.style.cssText = 'font-size:20px; font-weight:700; min-width:36px; text-align:center;';
+                    setsValueEl.textContent = adjustedSets.get(exercise.id);
+
+                    const setsPlusBtn = document.createElement('button');
+                    setsPlusBtn.className = 'btn btn-small btn-secondary';
+                    setsPlusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
+                    setsPlusBtn.textContent = '+';
+
+                    const setsChangedEl = document.createElement('div');
+                    setsChangedEl.style.cssText = 'font-size:12px; color:var(--color-accent-warning); font-weight:700; display:none;';
+                    setsChangedEl.textContent = '✎ modified';
+
+                    const originalSets = parseInt(exercise.sets) || 0;
+
+                    function updateSetsDisplay() {
+                        const val = adjustedSets.get(exercise.id);
+                        setsValueEl.textContent = val;
+                        setsChangedEl.style.display = (val !== originalSets) ? 'block' : 'none';
+                        setsMinusBtn.disabled = val <= 1;
+                    }
+
+                    setsMinusBtn.onclick = () => {
+                        const v = adjustedSets.get(exercise.id);
+                        if (v > 1) { adjustedSets.set(exercise.id, v - 1); updateSetsDisplay(); }
+                    };
+                    setsPlusBtn.onclick = () => {
+                        adjustedSets.set(exercise.id, adjustedSets.get(exercise.id) + 1);
+                        updateSetsDisplay();
+                    };
+
+                    updateSetsDisplay();
+                    setsRow.appendChild(setsLabel);
+                    setsRow.appendChild(setsMinusBtn);
+                    setsRow.appendChild(setsValueEl);
+                    setsRow.appendChild(setsPlusBtn);
+                    setsRow.appendChild(setsChangedEl);
+                    detailsContainer.appendChild(setsRow);
                 }
-                
+
+                // Reps stepper
                 if (exercise.reps) {
-                    const repsEl = document.createElement('div');
-                    repsEl.style.fontSize = '16px';
-                    repsEl.style.marginBottom = '4px';
-                    repsEl.textContent = `Reps: ${exercise.reps}`;
-                    detailsContainer.appendChild(repsEl);
+                    // Reps can be a range like "8-12" — extract the primary number
+                    // (last number in a range, e.g. 12 from "8-12") for stepping
+                    const parseReps = (val) => {
+                        const n = String(val).match(/(\d+)(?:\s*[-–]\s*(\d+))?/);
+                        return n ? parseInt(n[2] || n[1]) : 0;
+                    };
+                    const currentReps = adjustedReps.has(exercise.id)
+                        ? adjustedReps.get(exercise.id)
+                        : parseReps(exercise.reps);
+                    if (!adjustedReps.has(exercise.id)) adjustedReps.set(exercise.id, currentReps);
+
+                    const repsRow = document.createElement('div');
+                    repsRow.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:6px;';
+
+                    const repsLabel = document.createElement('div');
+                    repsLabel.style.cssText = 'font-size:14px; color:var(--color-text-secondary); width:36px; flex-shrink:0;';
+                    repsLabel.textContent = 'Reps';
+
+                    const repsMinusBtn = document.createElement('button');
+                    repsMinusBtn.className = 'btn btn-small btn-secondary';
+                    repsMinusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
+                    repsMinusBtn.textContent = '−';
+
+                    const repsValueEl = document.createElement('div');
+                    repsValueEl.style.cssText = 'font-size:20px; font-weight:700; min-width:36px; text-align:center;';
+                    repsValueEl.textContent = adjustedReps.get(exercise.id);
+
+                    const repsPlusBtn = document.createElement('button');
+                    repsPlusBtn.className = 'btn btn-small btn-secondary';
+                    repsPlusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
+                    repsPlusBtn.textContent = '+';
+
+                    const repsChangedEl = document.createElement('div');
+                    repsChangedEl.style.cssText = 'font-size:12px; color:var(--color-accent-warning); font-weight:700; display:none;';
+                    repsChangedEl.textContent = '✎ modified';
+
+                    const originalReps = parseReps(exercise.reps);
+
+                    function updateRepsDisplay() {
+                        const val = adjustedReps.get(exercise.id);
+                        repsValueEl.textContent = val;
+                        repsChangedEl.style.display = (val !== originalReps) ? 'block' : 'none';
+                        repsMinusBtn.disabled = val <= 1;
+                    }
+
+                    repsMinusBtn.onclick = () => {
+                        const v = adjustedReps.get(exercise.id);
+                        if (v > 1) { adjustedReps.set(exercise.id, v - 1); updateRepsDisplay(); }
+                    };
+                    repsPlusBtn.onclick = () => {
+                        adjustedReps.set(exercise.id, adjustedReps.get(exercise.id) + 1);
+                        updateRepsDisplay();
+                    };
+
+                    updateRepsDisplay();
+                    repsRow.appendChild(repsLabel);
+                    repsRow.appendChild(repsMinusBtn);
+                    repsRow.appendChild(repsValueEl);
+                    repsRow.appendChild(repsPlusBtn);
+                    repsRow.appendChild(repsChangedEl);
+                    detailsContainer.appendChild(repsRow);
                 }
                 
                 // Weight adjustment (only if no timer and has weight)
@@ -1375,11 +1485,18 @@ const Views = {
                 const notes = workoutNotes.get(exercise.id) || '';
                 
                 // Add workout record (with deloaded weight if applicable)
+                const finalSets = adjustedSets.has(exercise.id)
+                    ? String(adjustedSets.get(exercise.id))
+                    : exercise.sets;
+                const finalReps = adjustedReps.has(exercise.id)
+                    ? String(adjustedReps.get(exercise.id))
+                    : exercise.reps;
+
                 await db.addWorkoutExerciseRecord({
                     workoutSessionId: sessionId,
                     exerciseName: exercise.name,
-                    sets: exercise.sets,
-                    reps: exercise.reps,
+                    sets: finalSets,
+                    reps: finalReps,
                     weight: finalWeight,
                     notes: exercise.notes,
                     timerSeconds: finalTimer,
@@ -1393,8 +1510,8 @@ const Views = {
                     exerciseName: exercise.name,
                     date: Date.now(),
                     weight: finalWeight,
-                    reps: exercise.reps,
-                    sets: exercise.sets,
+                    reps: finalReps,
+                    sets: finalSets,
                     timerSeconds: finalTimer,
                     notes: notes,
                     personalRecord: false,
@@ -1406,6 +1523,10 @@ const Views = {
                     exercise.lastUsedDate = Date.now();
                     exercise.workoutsSinceLastUse = 0;
                     
+                    // Persist adjusted sets/reps so next workout loads the updated values
+                    exercise.sets = finalSets;
+                    exercise.reps = finalReps;
+
                     // CRITICAL: During deload week, save original weight, not deloaded weight
                     if (isDeload && exercise.originalWeight) {
                         // Deload week: save the original weight
