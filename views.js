@@ -988,128 +988,33 @@ const Views = {
                 const detailsContainer = document.createElement('div');
                 detailsContainer.style.marginTop = 'var(--spacing-sm)';
                 
-                // Sets stepper
+                // Sets stepper — uses the same createNumberPicker used elsewhere in the app
                 if (exercise.sets) {
-                    const currentSets = adjustedSets.has(exercise.id)
+                    const initSets = adjustedSets.has(exercise.id)
                         ? adjustedSets.get(exercise.id)
-                        : parseInt(exercise.sets) || 0;
-                    if (!adjustedSets.has(exercise.id)) adjustedSets.set(exercise.id, currentSets);
-
-                    const setsRow = document.createElement('div');
-                    setsRow.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:6px;';
-
-                    const setsLabel = document.createElement('div');
-                    setsLabel.style.cssText = 'font-size:14px; color:var(--color-text-secondary); width:36px; flex-shrink:0;';
-                    setsLabel.textContent = 'Sets';
-
-                    const setsMinusBtn = document.createElement('button');
-                    setsMinusBtn.className = 'btn btn-small btn-secondary';
-                    setsMinusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
-                    setsMinusBtn.textContent = '−';
-
-                    const setsValueEl = document.createElement('div');
-                    setsValueEl.style.cssText = 'font-size:20px; font-weight:700; min-width:36px; text-align:center;';
-                    setsValueEl.textContent = adjustedSets.get(exercise.id);
-
-                    const setsPlusBtn = document.createElement('button');
-                    setsPlusBtn.className = 'btn btn-small btn-secondary';
-                    setsPlusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
-                    setsPlusBtn.textContent = '+';
-
-                    const setsChangedEl = document.createElement('div');
-                    setsChangedEl.style.cssText = 'font-size:12px; color:var(--color-accent-warning); font-weight:700; display:none;';
-                    setsChangedEl.textContent = '✎ modified';
-
-                    const originalSets = parseInt(exercise.sets) || 0;
-
-                    const updateSetsDisplay = () => {
-                        const val = adjustedSets.get(exercise.id);
-                        setsValueEl.textContent = val;
-                        setsChangedEl.style.display = (val !== originalSets) ? 'block' : 'none';
-                        setsMinusBtn.disabled = val <= 1;
-                    };
-
-                    setsMinusBtn.onclick = () => {
-                        const v = adjustedSets.get(exercise.id);
-                        if (v > 1) { adjustedSets.set(exercise.id, v - 1); updateSetsDisplay(); }
-                    };
-                    setsPlusBtn.onclick = () => {
-                        adjustedSets.set(exercise.id, adjustedSets.get(exercise.id) + 1);
-                        updateSetsDisplay();
-                    };
-
-                    updateSetsDisplay();
-                    setsRow.appendChild(setsLabel);
-                    setsRow.appendChild(setsMinusBtn);
-                    setsRow.appendChild(setsValueEl);
-                    setsRow.appendChild(setsPlusBtn);
-                    setsRow.appendChild(setsChangedEl);
-                    detailsContainer.appendChild(setsRow);
+                        : (parseInt(exercise.sets) || 1);
+                    adjustedSets.set(exercise.id, initSets);
+                    const setsPicker = createNumberPicker('Sets', 1, 99, initSets, (val) => {
+                        adjustedSets.set(exercise.id, val);
+                    });
+                    detailsContainer.appendChild(setsPicker.container);
                 }
 
-                // Reps stepper
+                // Reps stepper — uses the same createNumberPicker used elsewhere in the app
                 if (exercise.reps) {
-                    // Reps can be a range like "8-12" — extract the primary number
-                    // (last number in a range, e.g. 12 from "8-12") for stepping
                     const parseReps = (val) => {
-                        const n = String(val).match(/(\d+)(?:\s*[-–]\s*(\d+))?/);
-                        return n ? parseInt(n[2] || n[1]) : 0;
+                        const parts = String(val).match(/\d+/g);
+                        if (!parts) return 1;
+                        return parseInt(parts[parts.length - 1]);
                     };
-                    const currentReps = adjustedReps.has(exercise.id)
+                    const initReps = adjustedReps.has(exercise.id)
                         ? adjustedReps.get(exercise.id)
                         : parseReps(exercise.reps);
-                    if (!adjustedReps.has(exercise.id)) adjustedReps.set(exercise.id, currentReps);
-
-                    const repsRow = document.createElement('div');
-                    repsRow.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:6px;';
-
-                    const repsLabel = document.createElement('div');
-                    repsLabel.style.cssText = 'font-size:14px; color:var(--color-text-secondary); width:36px; flex-shrink:0;';
-                    repsLabel.textContent = 'Reps';
-
-                    const repsMinusBtn = document.createElement('button');
-                    repsMinusBtn.className = 'btn btn-small btn-secondary';
-                    repsMinusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
-                    repsMinusBtn.textContent = '−';
-
-                    const repsValueEl = document.createElement('div');
-                    repsValueEl.style.cssText = 'font-size:20px; font-weight:700; min-width:36px; text-align:center;';
-                    repsValueEl.textContent = adjustedReps.get(exercise.id);
-
-                    const repsPlusBtn = document.createElement('button');
-                    repsPlusBtn.className = 'btn btn-small btn-secondary';
-                    repsPlusBtn.style.cssText = 'width:32px; height:32px; padding:0; font-size:18px; line-height:1; flex-shrink:0;';
-                    repsPlusBtn.textContent = '+';
-
-                    const repsChangedEl = document.createElement('div');
-                    repsChangedEl.style.cssText = 'font-size:12px; color:var(--color-accent-warning); font-weight:700; display:none;';
-                    repsChangedEl.textContent = '✎ modified';
-
-                    const originalReps = parseReps(exercise.reps);
-
-                    const updateRepsDisplay = () => {
-                        const val = adjustedReps.get(exercise.id);
-                        repsValueEl.textContent = val;
-                        repsChangedEl.style.display = (val !== originalReps) ? 'block' : 'none';
-                        repsMinusBtn.disabled = val <= 1;
-                    };
-
-                    repsMinusBtn.onclick = () => {
-                        const v = adjustedReps.get(exercise.id);
-                        if (v > 1) { adjustedReps.set(exercise.id, v - 1); updateRepsDisplay(); }
-                    };
-                    repsPlusBtn.onclick = () => {
-                        adjustedReps.set(exercise.id, adjustedReps.get(exercise.id) + 1);
-                        updateRepsDisplay();
-                    };
-
-                    updateRepsDisplay();
-                    repsRow.appendChild(repsLabel);
-                    repsRow.appendChild(repsMinusBtn);
-                    repsRow.appendChild(repsValueEl);
-                    repsRow.appendChild(repsPlusBtn);
-                    repsRow.appendChild(repsChangedEl);
-                    detailsContainer.appendChild(repsRow);
+                    adjustedReps.set(exercise.id, initReps);
+                    const repsPicker = createNumberPicker('Reps', 1, 999, initReps, (val) => {
+                        adjustedReps.set(exercise.id, val);
+                    });
+                    detailsContainer.appendChild(repsPicker.container);
                 }
                 
                 // Weight adjustment (only if no timer and has weight)
