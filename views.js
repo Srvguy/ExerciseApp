@@ -1022,12 +1022,12 @@ const Views = {
 
                     const originalSets = parseInt(exercise.sets) || 0;
 
-                    function updateSetsDisplay() {
+                    const updateSetsDisplay = () => {
                         const val = adjustedSets.get(exercise.id);
                         setsValueEl.textContent = val;
                         setsChangedEl.style.display = (val !== originalSets) ? 'block' : 'none';
                         setsMinusBtn.disabled = val <= 1;
-                    }
+                    };
 
                     setsMinusBtn.onclick = () => {
                         const v = adjustedSets.get(exercise.id);
@@ -1087,12 +1087,12 @@ const Views = {
 
                     const originalReps = parseReps(exercise.reps);
 
-                    function updateRepsDisplay() {
+                    const updateRepsDisplay = () => {
                         const val = adjustedReps.get(exercise.id);
                         repsValueEl.textContent = val;
                         repsChangedEl.style.display = (val !== originalReps) ? 'block' : 'none';
                         repsMinusBtn.disabled = val <= 1;
-                    }
+                    };
 
                     repsMinusBtn.onclick = () => {
                         const v = adjustedReps.get(exercise.id);
